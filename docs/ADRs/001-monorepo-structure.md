@@ -17,7 +17,6 @@
 | **Review date** | 2027-06-08 |
 | **Supersedes** | — |
 | **Superseded by** | — |
-| **Tags** | `repository` `structure` `build` |
 
 ---
 
