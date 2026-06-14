@@ -130,6 +130,8 @@ Raw document -> process -> internal publish -> branch + PR -> human review -> me
 
 The internal publish step commits the processed document to the Git content store and raises a pull request for human review. It is not a separately exposed intake method.
 
+`mnemo-core` separates pure document-processing logic from external side effects. LLM access and publishing are injected into the pipeline runner, allowing REST, MCP, and tests to share the same processing path while substituting fake providers in tests.
+
 ### LLM Layer
 
 Pluggable. The reference implementation uses Anthropic's API. Alternative providers can be configured via environment variable. See ADR-004.
