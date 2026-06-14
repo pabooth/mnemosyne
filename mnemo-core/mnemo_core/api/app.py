@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ..config import Settings, configure_settings, get_settings
 from ..mcp.server import create_mcp_asgi
 from ..observability.telemetry import setup_telemetry
+from ..pipeline.runner import PipelineRunner
 from .auth import require_api_token
 from .deps import build_runner
 from .routers import health, ingest, process

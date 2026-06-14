@@ -18,7 +18,7 @@ def test_slugify_collapses_whitespace():
 def test_build_markdown_includes_frontmatter():
     doc = processed_doc(title='A "quoted" title')
     md = build_markdown(doc)
-    assert 'title: "A "quoted" title"' in md
+    assert 'title: "A \\"quoted\\" title"' in md
     assert "type: how-to" in md
     assert "tags:" in md
     assert "  - deploy" in md

@@ -1,3 +1,4 @@
+import json
 import re
 
 from ..models import ProcessedDocument
@@ -16,15 +17,19 @@ def slugify(text: str) -> str:
     return re.sub(r"[\s_]+", "-", text)
 
 
+def yaml_string(value: str) -> str:
+    return json.dumps(value)
+
+
 def build_markdown(doc: ProcessedDocument) -> str:
     lines = ["---"]
-    lines.append(f'title: "{doc.title}"')
+    lines.append(f"title: {yaml_string(doc.title)}")
     lines.append(f"type: {doc.type}")
     if doc.sub_label:
         lines.append(f"sub_label: {doc.sub_label}")
     lines.append(f"status: {doc.status}")
     lines.append(f"owner: {doc.owner}")
-    lines.append(f'summary: "{doc.summary}"')
+    lines.append(f"summary: {yaml_string(doc.summary)}")
     lines.append(f"last_reviewed: {doc.last_reviewed}")
     lines.append("tags:")
     for tag in doc.tags:
