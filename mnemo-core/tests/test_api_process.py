@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from mnemo_core.api.app import create_app
 from mnemo_core.api.deps import build_runner, get_runner
-from mnemo_core.config import Settings, configure_settings
+from mnemo_core.config import Settings
 from tests.conftest import FakeLLM, FakePublisher, llm_json_response
 
 
@@ -18,7 +18,6 @@ def client(configured_settings: Settings):
     with TestClient(app) as test_client:
         yield test_client, publisher
     app.dependency_overrides.clear()
-    configure_settings(None)
 
 
 def test_health_unauthenticated(client):
@@ -61,6 +60,26 @@ def test_process_pipeline_error_returns_502(configured_settings: Settings):
             headers={"Authorization": "Bearer test-secret"},
         )
     assert response.status_code == 502
+
+
+def test_process_unexpected_error_returns_generic_500(configured_settings: Settings):
+    class BoomLLM(FakeLLM):
+        async def complete(self, system: str, user: str, max_tokens: int = 4000) -> str:
+            raise RuntimeError("secret internal detail")
+
+    runner = build_runner(configured_settings, publisher=FakePublisher(), llm=BoomLLM(""))
+    app = create_app(configured_settings)
+    app.dependency_overrides[get_runner] = lambda: runner
+
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/api/process",
+            json={"content": "hello"},
+            headers={"Authorization": "Bearer test-secret"},
+        )
+    assert response.status_code == 500
+    assert "secret internal detail" not in response.text
+    assert response.json()["detail"] == "Internal server error"
 
 
 def test_process_returns_503_when_auth_not_configured():

@@ -71,6 +71,34 @@ async def test_execute_publish_plan_reuses_existing_pr_on_422():
     assert result.pr_url == "https://github.com/acme/kb/pull/99"
 
 
+@respx.mock
+async def test_execute_publish_plan_raises_on_422_with_empty_pr_list():
+    doc = processed_doc()
+    plan = build_publish_plan(doc, "acme/kb", today=date(2026, 6, 14))
+
+    respx.get(f"{GITHUB_API}/repos/acme/kb").mock(
+        return_value=httpx.Response(200, json={"default_branch": "main"})
+    )
+    respx.get(f"{GITHUB_API}/repos/acme/kb/git/ref/heads/main").mock(
+        return_value=httpx.Response(200, json={"object": {"sha": "abc123"}})
+    )
+    respx.post(f"{GITHUB_API}/repos/acme/kb/git/refs").mock(
+        return_value=httpx.Response(201, json={})
+    )
+    respx.put(f"{GITHUB_API}/repos/acme/kb/contents/{plan.file_path}").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    respx.post(f"{GITHUB_API}/repos/acme/kb/pulls").mock(
+        return_value=httpx.Response(422, json={})
+    )
+    respx.get(f"{GITHUB_API}/repos/acme/kb/pulls").mock(
+        return_value=httpx.Response(200, json=[])
+    )
+
+    with pytest.raises(PublishError, match="no open PR found"):
+        await execute_publish_plan(plan, "gh-test")
+
+
 async def test_github_publisher_requires_token():
     from mnemo_core.pipeline.publish import GitHubPublisher
 

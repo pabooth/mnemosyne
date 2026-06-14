@@ -137,7 +137,12 @@ async def _publish_with_client(client: httpx.AsyncClient, plan: PublishPlan) -> 
             params={"head": f"{owner}:{plan.branch}", "state": "open"},
         )
         r2.raise_for_status()
-        return r2.json()[0]["html_url"]
+        pulls = r2.json()
+        if not pulls:
+            raise PublishError(
+                f"GitHub rejected PR creation (422) and no open PR found for branch {plan.branch!r}"
+            )
+        return pulls[0]["html_url"]
 
     r.raise_for_status()
     return r.json()["html_url"]

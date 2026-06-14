@@ -1,6 +1,8 @@
 import json
 import re
 
+from pydantic import ValidationError
+
 from ..models import ProcessedDocument
 from . import ProcessingError
 
@@ -22,5 +24,5 @@ def parse_processed_document(raw: str) -> ProcessedDocument:
 
     try:
         return ProcessedDocument(**data)
-    except Exception as e:
+    except (ValidationError, TypeError) as e:
         raise ProcessingError(f"LLM response missing required fields: {e}") from e

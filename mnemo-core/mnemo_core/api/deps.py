@@ -1,7 +1,7 @@
 from fastapi import Depends
 
-from ..llm.base import LLMProvider
 from ..config import Settings, get_settings
+from ..llm.base import LLMProvider
 from ..llm.factory import get_provider
 from ..pipeline.publish import GitHubPublisher, Publisher
 from ..pipeline.runner import PipelineRunner
@@ -30,8 +30,12 @@ def get_publisher(cfg: Settings = Depends(get_settings)) -> Publisher:
     )
 
 
+def get_llm(cfg: Settings = Depends(get_settings)) -> LLMProvider:
+    return get_provider(cfg)
+
+
 def get_runner(
-    cfg: Settings = Depends(get_settings),
     publisher: Publisher = Depends(get_publisher),
+    llm: LLMProvider = Depends(get_llm),
 ) -> PipelineRunner:
-    return build_runner(cfg, publisher)
+    return PipelineRunner(llm, publisher)

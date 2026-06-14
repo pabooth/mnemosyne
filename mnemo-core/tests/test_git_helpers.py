@@ -37,3 +37,18 @@ def test_build_publish_plan_reference_folder():
     assert plan.file_path == "kb/docs/reference/security-standard.md"
     assert plan.branch == "mnemo/reference/security-standard-2026-06-14"
     assert plan.repo == "acme/kb"
+
+
+def test_build_markdown_quotes_special_char_tags():
+    doc = processed_doc(tags=["safe-tag", "needs: quoting", "also#quoted"])
+    md = build_markdown(doc)
+    assert '  - safe-tag' in md
+    assert '  - "needs: quoting"' in md
+    assert '  - "also#quoted"' in md
+
+
+def test_build_markdown_quotes_special_char_flags():
+    doc = processed_doc(flags=["needs-review", "has: colon"])
+    md = build_markdown(doc)
+    assert "  - needs-review" in md
+    assert '  - "has: colon"' in md

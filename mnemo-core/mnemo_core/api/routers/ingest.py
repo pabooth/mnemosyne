@@ -1,9 +1,13 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from ...models import DocumentInput, IngestResult
 from ...pipeline import PipelineError
 from ...pipeline.runner import PipelineRunner
 from ..deps import get_runner
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -18,5 +22,6 @@ async def ingest(
         return await runner.run(req)
     except PipelineError as e:
         raise HTTPException(status_code=502, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Unexpected error during ingest")
+        raise HTTPException(status_code=500, detail="Internal server error")

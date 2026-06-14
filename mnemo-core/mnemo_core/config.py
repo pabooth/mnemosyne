@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _settings_override: "Settings | None" = None
+_settings_cache: "Settings | None" = None
 
 
 class Settings(BaseSettings):
@@ -39,11 +40,13 @@ class Settings(BaseSettings):
     otel_service_name: str = "mnemo-core"
 
 
-settings = Settings()
-
-
 def get_settings() -> Settings:
-    return _settings_override or settings
+    global _settings_cache
+    if _settings_override is not None:
+        return _settings_override
+    if _settings_cache is None:
+        _settings_cache = Settings()
+    return _settings_cache
 
 
 def configure_settings(override: Settings | None) -> None:

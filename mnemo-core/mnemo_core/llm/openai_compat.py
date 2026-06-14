@@ -19,4 +19,4 @@ class OpenAICompatProvider(LLMProvider):
                 {"role": "user", "content": user},
             ],
         )
-        return resp.choices[0].message.content
+        return resp.choices[0].message.content or ""
