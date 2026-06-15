@@ -6,6 +6,8 @@ Exposes two tools:
 
 Mounted as an ASGI sub-app at /mcp in the main FastAPI application.
 Clients connect via SSE at /mcp/sse and POST messages to /mcp/messages.
+Local stdio wrappers may bridge to these endpoints for clients that cannot
+connect to network MCP servers directly; ingestion logic remains here.
 """
 
 import json
@@ -24,7 +26,7 @@ from ..pipeline import PipelineError
 from ..pipeline.runner import PipelineRunner
 
 _server = Server("mnemo-core")
-_sse_transport = SseServerTransport("/mcp/messages")
+_sse_transport = SseServerTransport("/messages")
 _default_runner_factory: Callable[[], PipelineRunner] | None = None
 
 
@@ -153,7 +155,7 @@ class _MCPASGIRouter:
         if scope["type"] != "http":
             return
 
-        path: str = scope.get("path", "")
+        path = _mounted_path(scope)
         method: str = scope.get("method", "").upper()
 
         if path == "/sse" and method == "GET":
@@ -199,6 +201,15 @@ def _header(scope: Scope, name: bytes) -> str | None:
         if key.lower() == name:
             return value.decode("latin1")
     return None
+
+
+def _mounted_path(scope: Scope) -> str:
+    """Return the path relative to the mount point when Starlette keeps the prefix."""
+    path: str = scope.get("path", "")
+    root_path: str = scope.get("root_path", "")
+    if root_path and path.startswith(root_path):
+        return path[len(root_path):] or "/"
+    return path
 
 
 def create_mcp_asgi(
