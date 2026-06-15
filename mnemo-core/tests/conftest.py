@@ -64,7 +64,7 @@ class FakePublisher(Publisher):
         self.result = result or PublishResult(
             pr_url="https://github.com/acme/kb/pull/1",
             branch="mnemo/how-to/deploy-the-app-2026-06-14",
-            file_path="kb/docs/how-to/deploy-the-app.md",
+            file_path="how-to/deploy-the-app.md",
         )
 
     async def publish(self, doc: ProcessedDocument) -> PublishResult:

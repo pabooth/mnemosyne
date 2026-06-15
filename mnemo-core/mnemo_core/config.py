@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # GitHub — required for the internal publish step used by ingest
     github_token: str = ""
     github_repo: str = ""
+    # Root path inside the repo where docs are written, e.g. "kb/docs".
+    # Leave empty to write directly into the Diataxis folders at the repo root.
+    docs_root: str = ""
 
     # App
     frontend_origin: str = "http://localhost:7000"

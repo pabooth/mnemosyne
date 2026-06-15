@@ -17,6 +17,7 @@ def build_runner(
         publisher = GitHubPublisher(
             github_token=cfg.github_token,
             github_repo=cfg.github_repo,
+            docs_root=cfg.docs_root,
         )
     if llm is None:
         llm = get_provider(cfg)
@@ -27,6 +28,7 @@ def get_publisher(cfg: Settings = Depends(get_settings)) -> Publisher:
     return GitHubPublisher(
         github_token=cfg.github_token,
         github_repo=cfg.github_repo,
+        docs_root=cfg.docs_root,
     )
 
 

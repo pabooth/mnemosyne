@@ -32,11 +32,13 @@ def build_publish_plan(
     repo: str,
     *,
     today: date | None = None,
+    docs_root: str = "",
 ) -> PublishPlan:
     today = today or date.today()
     folder = DIATAXIS_FOLDERS.get(doc.type, "how-to")
     slug = slugify(doc.title)
-    file_path = f"kb/docs/{folder}/{slug}.md"
+    prefix = f"{docs_root.strip('/')}/" if docs_root else ""
+    file_path = f"{prefix}{folder}/{slug}.md"
     branch = f"mnemo/{doc.type}/{slug}-{today.isoformat()}"
     content_b64 = base64.b64encode(build_markdown(doc).encode()).decode()
 
@@ -154,10 +156,12 @@ class GitHubPublisher:
         github_token: str,
         github_repo: str,
         *,
+        docs_root: str = "",
         today: date | None = None,
     ) -> None:
         self._token = github_token
         self._repo = github_repo
+        self._docs_root = docs_root
         self._today = today
 
     async def publish(self, doc: ProcessedDocument) -> PublishResult:
@@ -166,5 +170,5 @@ class GitHubPublisher:
         if not self._repo:
             raise PublishError("GITHUB_REPO is not configured")
 
-        plan = build_publish_plan(doc, self._repo, today=self._today)
+        plan = build_publish_plan(doc, self._repo, today=self._today, docs_root=self._docs_root)
         return await execute_publish_plan(plan, self._token)

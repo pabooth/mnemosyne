@@ -34,9 +34,21 @@ def test_build_markdown_omits_empty_sub_label():
 def test_build_publish_plan_reference_folder():
     doc = processed_doc(type="reference", title="Security Standard")
     plan = build_publish_plan(doc, "acme/kb", today=date(2026, 6, 14))
-    assert plan.file_path == "kb/docs/reference/security-standard.md"
+    assert plan.file_path == "reference/security-standard.md"
     assert plan.branch == "mnemo/reference/security-standard-2026-06-14"
     assert plan.repo == "acme/kb"
+
+
+def test_build_publish_plan_with_docs_root():
+    doc = processed_doc(type="reference", title="Security Standard")
+    plan = build_publish_plan(doc, "acme/kb", today=date(2026, 6, 14), docs_root="kb/docs")
+    assert plan.file_path == "kb/docs/reference/security-standard.md"
+
+
+def test_build_publish_plan_docs_root_strips_slashes():
+    doc = processed_doc(type="how-to", title="Deploy the app")
+    plan = build_publish_plan(doc, "acme/kb", today=date(2026, 6, 14), docs_root="/kb/docs/")
+    assert plan.file_path == "kb/docs/how-to/deploy-the-app.md"
 
 
 def test_build_markdown_quotes_special_char_tags():
