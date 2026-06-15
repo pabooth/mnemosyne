@@ -173,7 +173,7 @@ Optional. mnemo-core is instrumented with OpenTelemetry and emits traces, metric
 
 External intake clients submit raw documents. They may either request a non-mutating processed preview or use the full ingest workflow that creates a pull request.
 
-The MCP server is an intake interface only. It does not expose KB query or retrieval capabilities.
+The MCP server is an intake interface only. It does not expose KB query or retrieval capabilities. `mnemo-core` exposes the authoritative network MCP server directly over SSE at `/mcp/sse`, with client messages posted to `/mcp/messages`. Clients that can connect to remote MCP servers, such as Cursor or other agent runtimes with SSE support, should connect to this endpoint directly. Clients that only support local stdio MCP servers may use a thin bridge process, but that bridge is transport glue only; all ingestion tools and governance remain inside `mnemo-core`. See ADR-006 and ADR-008.
 
 ***
 
@@ -219,3 +219,4 @@ Key decisions governing this project are documented as ADRs in `/docs/adr/`.
 | 005 | AI must not contribute without human review      | Accepted |
 | 006 | MCP as intake interface only, not retrieval      | Accepted |
 | 007 | Pluggable KB layer, MkDocs Material as reference | Accepted |
+| 008 | MCP transport and client compatibility           | Accepted |

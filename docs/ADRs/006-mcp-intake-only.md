@@ -108,6 +108,7 @@ Negative / trade-offs:
 
 - [ADR-005: AI must not contribute without human review](005-human-review-governance.md)
 - [ADR-007: Pluggable KB layer](007-kb-layer-pluggability.md)
+- [ADR-008: MCP transport and client compatibility](008-mcp-transport-and-client-compatibility.md)
 
 ---
 
