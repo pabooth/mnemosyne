@@ -63,7 +63,7 @@ class FakePublisher(Publisher):
         self.last_doc: ProcessedDocument | None = None
         self.result = result or PublishResult(
             pr_url="https://github.com/acme/kb/pull/1",
-            branch="mnemo/how-to/deploy-the-app-2026-06-14",
+            branch="mnemo/how-to/deploy-the-app-2026-06-14-test",
             file_path="how-to/deploy-the-app.md",
         )
 

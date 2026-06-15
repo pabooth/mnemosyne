@@ -1,4 +1,5 @@
 import base64
+import secrets
 from dataclasses import dataclass
 from datetime import date
 from typing import Protocol
@@ -33,13 +34,15 @@ def build_publish_plan(
     *,
     today: date | None = None,
     docs_root: str = "",
+    branch_suffix: str | None = None,
 ) -> PublishPlan:
     today = today or date.today()
     folder = DIATAXIS_FOLDERS.get(doc.type, "how-to")
     slug = slugify(doc.title)
     prefix = f"{docs_root.strip('/')}/" if docs_root else ""
     file_path = f"{prefix}{folder}/{slug}.md"
-    branch = f"mnemo/{doc.type}/{slug}-{today.isoformat()}"
+    suffix = branch_suffix if branch_suffix is not None else secrets.token_hex(4)
+    branch = f"mnemo/{doc.type}/{slug}-{today.isoformat()}-{suffix}"
     content_b64 = base64.b64encode(build_markdown(doc).encode()).decode()
 
     return PublishPlan(
