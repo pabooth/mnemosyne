@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     docs_root: str = ""
 
     # App
-    frontend_origin: str = "http://localhost:7000"
+    frontend_origin: str = "http://localhost:8888"
     mnemo_api_token: str = ""
 
     # Observability — empty string disables OTel

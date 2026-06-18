@@ -59,8 +59,8 @@ For a full description of Mnemosyne's architecture, component design, and archit
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `ANTHROPIC_API_KEY` | Your Anthropic API key | — |
-| `MNEMO_PORT_UI` | mnemo-ui port | `7000` |
-| `MNEMO_PORT_CORE` | mnemo-core port | `7001` |
+| `MNEMO_PORT_UI` | mnemo-ui port | `8888` |
+| `MNEMO_PORT_CORE` | mnemo-core port | `7777` |
 
 ### MCP integration
 

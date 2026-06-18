@@ -11,6 +11,6 @@ COPY mnemo_core/ ./mnemo_core/
 
 RUN pip install .
 
-EXPOSE 7001
+EXPOSE 7777
 
-CMD ["python", "-m", "uvicorn", "mnemo_core.api.app:app", "--host", "0.0.0.0", "--port", "7001"]
+CMD ["python", "-m", "uvicorn", "mnemo_core.api.app:app", "--host", "0.0.0.0", "--port", "7777"]
