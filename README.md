@@ -31,7 +31,7 @@ Built for teams that care about the quality and governance of their knowledge, n
 
 ## Architecture
 
-For a full description of Mnemosyne's architecture, component design, and architectural decisions, see [ARCHITECTURE.md](./ARCHITECTURE.md).
+For a full description of Mnemosyne's architecture, component design, and architectural decisions, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ---
 
