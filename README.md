@@ -1,6 +1,6 @@
 ![Mnemosyne](./header.png)
 
-![License](https://img.shields.io/badge/license-MIT-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Build](https://img.shields.io/github/actions/workflow/status/pabooth/mnemosyne/release.yml)
 ![Version](https://img.shields.io/github/v/release/pabooth/mnemosyne)
 
