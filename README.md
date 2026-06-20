@@ -1,5 +1,6 @@
 ![Mnemosyne](./header.png)
 
+[![Tests](https://github.com/pabooth/mnemosyne/actions/workflows/tests.yml/badge.svg)](https://github.com/pabooth/mnemosyne/actions/workflows/tests.yml)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![CI](https://img.shields.io/github/actions/workflow/status/pabooth/mnemosyne/ci.yml?branch=main)
 ![Version](https://img.shields.io/github/v/release/pabooth/mnemosyne)
