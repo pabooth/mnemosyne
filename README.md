@@ -15,6 +15,7 @@ The project contains:
   history, GitHub publishing, webhook intake, and knowledge-base self-audit.
 - `mnemo-ui`: optional static browser interface for previewing, editing, and
   submitting documents.
+  - Branch protection on `main` requires PRs, passing checks, and at least one approval.
 
 ## Quick start
 
