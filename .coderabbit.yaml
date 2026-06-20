@@ -10,7 +10,6 @@ tone_instructions: >
 
 reviews:
   profile: assertive
-  request_changes_workflow: false
   high_level_summary: true
   high_level_summary_instructions: |
     Summarise the change in 2–3 sentences, then list:
@@ -60,7 +59,6 @@ reviews:
     - "!**/__pycache__/**"
     - "!**/*.pyc"
     - "!**/site/**"
-    - "!mnemo-core/.tmp-docker-venv/**"
     - "!header.png"
 
   path_instructions:
