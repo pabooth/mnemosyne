@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-20
 ### Added
 - Pull request and push CI for core, UI, containers, and Compose validation
 - Docker Compose deployment with reverse proxy and optional observability stack

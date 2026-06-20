@@ -1,6 +1,6 @@
 [project]
 name = "mnemo-core"
-version = "v1.0.0"
+version = "1.0.0"
 description = "Mnemosyne ingestion engine — REST API, MCP server, and document processing pipeline"
 requires-python = ">=3.12"
 dependencies = [
