@@ -7,7 +7,7 @@
 Mnemosyne is an open-source, AI-assisted document ingestion engine. It
 classifies source material using the [Diátaxis framework](https://diataxis.fr),
 improves its structure and metadata, and opens a pull request for human review.
-It never merges generated content.
+It never merges generated content. Generated content is always opened as a draft PR for review.
 
 The project contains:
 
