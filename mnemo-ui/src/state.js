@@ -1,6 +1,6 @@
 import { DEFAULT_API_URL } from './config.js';
 import { normalizeApiUrl } from './security.js';
-import { safeStorageGet } from './storage.js';
+import { safeSessionStorageGet, safeStorageGet } from './storage.js';
 
 export function createInitialState() {
   return {
@@ -17,9 +17,12 @@ export function createInitialState() {
     error: null,
     contentError: null,
     showSettings: false,
-    apiToken: safeStorageGet('mnemo_token'),
+    showHistory: false,
+    history: [],
+    historyError: null,
+    apiToken: safeSessionStorageGet('mnemo_token'),
     apiUrl: normalizeApiUrl(safeStorageGet('mnemo_url', DEFAULT_API_URL)),
-    useMock: safeStorageGet('mnemo_mock') !== 'false',
+    useMock: safeStorageGet('mnemo_mock') === 'true',
   };
 }
 
@@ -35,6 +38,11 @@ export function createStore(initialState, onChange) {
       if (!nextPatch) return;
       state = { ...state, ...nextPatch };
       onChange(state);
+    },
+    updateState(patch) {
+      const nextPatch = typeof patch === 'function' ? patch(state) : patch;
+      if (!nextPatch) return;
+      state = { ...state, ...nextPatch };
     },
   };
 }

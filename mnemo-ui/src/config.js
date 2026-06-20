@@ -1,4 +1,6 @@
-export const DEFAULT_API_URL = 'http://localhost:7777';
+export const DEFAULT_API_URL = typeof window === 'undefined'
+  ? 'http://localhost:7777'
+  : window.location.origin;
 export const API_TIMEOUT_MS = 30000;
 
 export const CONTENT_TYPES = [

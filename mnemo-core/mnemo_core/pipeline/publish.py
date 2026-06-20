@@ -1,5 +1,6 @@
 import base64
-import secrets
+import hashlib
+import re
 from dataclasses import dataclass
 from datetime import date
 from typing import Protocol
@@ -39,11 +40,21 @@ def build_publish_plan(
     today = today or date.today()
     folder = DIATAXIS_FOLDERS.get(doc.type, "how-to")
     slug = slugify(doc.title)
-    prefix = f"{docs_root.strip('/')}/" if docs_root else ""
+    if not slug:
+        raise PublishError("Document title does not produce a valid file name")
+    if not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
+        raise PublishError("GITHUB_REPO must use the owner/repository format")
+    normalized_root = docs_root.strip("/")
+    if any(part in {"", ".", ".."} for part in normalized_root.split("/")) and normalized_root:
+        raise PublishError("DOCS_ROOT contains an unsafe path segment")
+    prefix = f"{normalized_root}/" if normalized_root else ""
     file_path = f"{prefix}{folder}/{slug}.md"
-    suffix = branch_suffix if branch_suffix is not None else secrets.token_hex(4)
+    markdown = build_markdown(doc)
+    suffix = branch_suffix if branch_suffix is not None else hashlib.sha256(
+        markdown.encode()
+    ).hexdigest()[:8]
     branch = f"mnemo/{doc.type}/{slug}-{today.isoformat()}-{suffix}"
-    content_b64 = base64.b64encode(build_markdown(doc).encode()).decode()
+    content_b64 = base64.b64encode(markdown.encode()).decode()
 
     return PublishPlan(
         repo=repo,
@@ -113,17 +124,31 @@ async def _publish_with_client(client: httpx.AsyncClient, plan: PublishPlan) -> 
         f"/repos/{repo}/git/refs",
         json={"ref": f"refs/heads/{plan.branch}", "sha": sha},
     )
+    branch_existed = r.status_code == 422
     if r.status_code not in (201, 422):
         r.raise_for_status()
 
-    r = await client.put(
-        f"/repos/{repo}/contents/{plan.file_path}",
-        json={
-            "message": plan.commit_message,
-            "content": plan.content_b64,
-            "branch": plan.branch,
-        },
-    )
+    existing_sha: str | None = None
+    if branch_existed:
+        branch_response = await client.get(f"/repos/{repo}/git/ref/heads/{plan.branch}")
+        branch_response.raise_for_status()
+        existing = await client.get(
+            f"/repos/{repo}/contents/{plan.file_path}",
+            params={"ref": plan.branch},
+        )
+        if existing.status_code == 200:
+            existing_data = existing.json()
+            existing_sha = existing_data["sha"]
+            if existing_data.get("content", "").replace("\n", "") == plan.content_b64:
+                r = existing
+            else:
+                r = await _put_content(client, plan, existing_sha)
+        elif existing.status_code == 404:
+            r = await _put_content(client, plan)
+        else:
+            existing.raise_for_status()
+    else:
+        r = await _put_content(client, plan)
     r.raise_for_status()
 
     r = await client.post(
@@ -151,6 +176,24 @@ async def _publish_with_client(client: httpx.AsyncClient, plan: PublishPlan) -> 
 
     r.raise_for_status()
     return r.json()["html_url"]
+
+
+async def _put_content(
+    client: httpx.AsyncClient,
+    plan: PublishPlan,
+    existing_sha: str | None = None,
+) -> httpx.Response:
+    payload = {
+        "message": plan.commit_message,
+        "content": plan.content_b64,
+        "branch": plan.branch,
+    }
+    if existing_sha:
+        payload["sha"] = existing_sha
+    return await client.put(
+        f"/repos/{plan.repo}/contents/{plan.file_path}",
+        json=payload,
+    )
 
 
 class GitHubPublisher:

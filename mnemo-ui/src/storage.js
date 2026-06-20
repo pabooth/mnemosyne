@@ -13,3 +13,19 @@ export function safeStorageSet(key, value) {
     // Storage may be unavailable in private or locked-down browser contexts.
   }
 }
+
+export function safeSessionStorageGet(key, fallback = '') {
+  try {
+    return sessionStorage.getItem(key) || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function safeSessionStorageSet(key, value) {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    // Session storage may be unavailable in locked-down browser contexts.
+  }
+}

@@ -37,10 +37,28 @@ class Settings(BaseSettings):
     # App
     frontend_origin: str = "http://localhost:8888"
     mnemo_api_token: str = ""
+    mnemo_api_tokens: str = ""
+    request_timeout_seconds: float = 120
+    request_rate_limit_per_minute: int = 30
+    request_max_concurrency: int = 4
+    request_max_body_bytes: int = 2_000_000
+    state_db_path: str = "./data/mnemosyne.db"
+    job_max_attempts: int = 2
+    job_retry_base_seconds: float = 1
+
+    # GitHub webhook intake
+    github_webhook_secret: str = ""
+    github_webhook_branch: str = "main"
+    github_webhook_path_prefix: str = ""
+    github_webhook_max_files: int = 20
+    audit_stale_after_days: int = 180
+    audit_max_files: int = 500
+    source_url_allowed_hosts: str = ""
 
     # Observability — empty string disables OTel
     otel_exporter_otlp_endpoint: str = ""
     otel_service_name: str = "mnemo-core"
+    log_level: str = "INFO"
 
 
 def get_settings() -> Settings:

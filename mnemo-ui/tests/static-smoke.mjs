@@ -18,6 +18,7 @@ assert.match(index, /<link rel="stylesheet" href="\.\/src\/styles\.css">/);
 assert.doesNotMatch(index, /__bundler\/manifest/);
 assert.doesNotMatch(index, /__bundler\/template/);
 assert.match(renderer, /escapeHtml/);
+assert.match(renderer, /\/api\/publish/);
 assert.doesNotMatch(renderer, /dangerouslysetinnerhtml/i);
 
 for (const path of [

@@ -1,0 +1,189 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# https://docs.coderabbit.ai/reference/configuration
+
+language: en-GB
+focus: balanced
+tone_instructions: >
+  Be direct and concise. Prioritise correctness, security, governance
+  invariants, and missing tests over style-only comments. Avoid restating
+  what the code does unless it explains a concrete risk.
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_instructions: |
+    Summarise the change in 2–3 sentences, then list:
+    - affected components (mnemo-ui, mnemo-core, deployment, or docs)
+    - affected workflow (preview, ingest/publish, MCP, authentication, or observability)
+    - tests added or updated
+    Explicitly call out changes to the human-review governance boundary.
+  auto_title_instructions: >
+    Format: "<type>(<scope>): <title>".
+    Type must be one of: feat, fix, docs, refactor, test, chore, ci.
+    Scope should be one of: ui, api, core, pipeline, mcp, llm, publish,
+    auth, infra, docs.
+    Title should be concise (≤ 72 chars).
+    Example: "fix(publish): handle branch SHA conflicts"
+  poem: false
+  in_progress_fortune: false
+  sequence_diagrams: false
+  review_status: true
+  review_details: true
+  changed_files_summary: true
+  estimate_code_review_effort: true
+  suggested_labels: true
+  labeling_instructions:
+    - label: "component: ui"
+      instructions: Apply when the PR contains changes under mnemo-ui/.
+    - label: "component: core"
+      instructions: Apply when the PR contains changes under mnemo-core/.
+    - label: "pipeline"
+      instructions: Apply when the PR touches the document ingestion or processing pipeline.
+    - label: "mcp"
+      instructions: Apply when the PR modifies the MCP server or MCP tool definitions.
+    - label: "security"
+      instructions: Apply when the PR changes authentication, secrets handling, input sanitisation, CORS, or rendered untrusted content.
+    - label: "docs"
+      instructions: Apply when the PR is primarily documentation — ADRs, README, ARCHITECTURE.md.
+    - label: "infra"
+      instructions: Apply when the PR changes Docker, CI, Makefile, or deployment configuration.
+    - label: "tests"
+      instructions: Apply when the PR primarily adds or restructures automated tests.
+
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/.venv/**"
+    - "!**/.pytest_cache/**"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!**/__pycache__/**"
+    - "!**/*.pyc"
+    - "!**/site/**"
+    - "!mnemo-core/.tmp-docker-venv/**"
+    - "!header.png"
+
+  path_instructions:
+    - path: "mnemo-core/mnemo_core/api/**"
+      instructions: |
+        This is the FastAPI boundary. Check:
+        - All non-health endpoints retain authentication dependencies
+        - Request data is validated with Pydantic before pipeline or publishing calls
+        - Internal exceptions are translated to appropriate HTTP responses without leaking credentials or provider details
+        - Preview endpoints remain side-effect free; ingest endpoints are the only REST path allowed to publish
+        - Behaviour changes include focused pytest coverage for success and failure paths
+
+    - path: "mnemo-core/mnemo_core/pipeline/**"
+      instructions: |
+        This is the document processing pipeline. Check:
+        - LLM calls use the injected LLMProvider abstraction; no provider SDK calls belong here
+        - Diataxis classification logic is consistent with the prompts in prompts.py
+        - Parsing treats LLM output as untrusted and fails clearly on malformed or incomplete output
+        - Pure processing remains separate from external side effects
+        - Changes to classification, parsing, markdown, or runner behaviour include unit tests
+
+    - path: "mnemo-core/mnemo_core/pipeline/{git,publish}.py"
+      instructions: |
+        This code crosses the governance boundary and requires high scrutiny. Check:
+        - Publishing only creates or updates a branch and pull request; it must never merge or push directly to the target branch
+        - Repository names, branches, paths, and generated filenames cannot enable traversal or command injection
+        - GitHub API failures, missing configuration, duplicate PRs, and SHA conflicts are handled without partial or misleading success
+        - Credentials are never logged or included in exceptions returned to clients
+        - New behaviour has tests using fakes or mocked HTTP; tests must not access real repositories
+
+    - path: "mnemo-core/mnemo_core/mcp/**"
+      instructions: |
+        This is the MCP server for agent intake. Check:
+        - Tool schemas and descriptions accurately match runtime behaviour
+        - Input validation happens before any pipeline calls
+        - process_document must remain non-destructive (no PR raised)
+        - submit_document is the only MCP tool that may raise a GitHub PR
+        - MCP authentication and error behaviour remain consistent with the REST API
+        - Tool changes are reflected in tests/test_mcp_tools.py
+
+    - path: "mnemo-core/mnemo_core/llm/**"
+      instructions: |
+        This is the pluggable LLM abstraction layer. Check:
+        - Providers implement LLMProvider and provider selection remains centralised in factory.py
+        - SDK-specific code does not leak into the pipeline
+        - API keys, base URLs, models, and timeouts come from validated settings
+        - Provider failures are normalised without exposing secrets
+        - Async provider calls do not block the event loop
+
+    - path: "mnemo-core/mnemo_core/{auth.py,config.py,models.py}"
+      instructions: |
+        Check security-sensitive defaults, validation, and backwards compatibility.
+        Authentication must fail closed when enabled. Secrets must not appear in
+        reprs, logs, responses, examples, or committed defaults.
+
+    - path: "mnemo-ui/**"
+      instructions: |
+        This is a dependency-light vanilla JavaScript frontend, not React. Check:
+        - Keep API access in src/api.js, runtime configuration in src/config.js,
+          state transitions in src/state.js, and DOM rendering in src/render.js
+        - Treat API and document content as untrusted; use the existing security
+          and markdown helpers and avoid unsafe innerHTML sinks
+        - No hardcoded deployment-specific API URLs
+        - Async failures produce actionable UI state and do not leave controls stuck
+        - Preserve keyboard navigation, focus handling, labels, and semantic markup
+        - Update the static smoke test when changing source layout or required assets
+
+    - path: "**/tests/**"
+      instructions: |
+        Check that tests assert externally observable behaviour and meaningful failure
+        cases. Avoid network access, real credentials, timing dependence, and mocks
+        that merely reproduce the implementation.
+
+    - path: "**/Dockerfile*"
+      instructions: |
+        Check for non-root runtime users, pinned base image versions, no secrets in
+        ENV or ARG, reproducible dependency installation, useful health checks, and
+        minimal runtime contents.
+
+    - path: "{docker-compose.yml,deploy/**,.github/workflows/**}"
+      instructions: |
+        Check that service names, ports, health checks, environment variables, image
+        tags, and API routing remain consistent across core, UI, Compose, and reverse
+        proxy configuration. GitHub Actions permissions should be least-privilege and
+        third-party actions should be pinned to immutable commit SHAs.
+
+    - path: "{mnemo-core/pyproject.toml,mnemo-ui/package.json}"
+      instructions: |
+        Check manifest syntax, supported runtime versions, dependency compatibility,
+        and consistency with Dockerfiles and CI. Flag broad or unbounded dependency
+        changes that reduce reproducibility.
+
+    - path: "docs/ADRs/**"
+      instructions: |
+        Architecture Decision Records. Check:
+        - Each ADR has a clear status (Proposed/Accepted/Deprecated/Superseded)
+        - Consequences section covers both positive and negative outcomes
+        - New decisions do not silently contradict accepted ADRs
+        - Language is clear and direct British English
+
+    - path: "**/*.env*"
+      instructions: |
+        Flag immediately if any real secrets, tokens, or passwords are present.
+        .env files should contain placeholder values only, or be named .env.example.
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    ignore_title_keywords:
+      - "WIP"
+      - "[skip review]"
+    drafts: false
+
+chat:
+  auto_reply: true
+  art: false
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "README.md"
+      - "docs/ARCHITECTURE.md"
+      - "docs/ADRs/*.md"
+  learnings:
+    scope: local

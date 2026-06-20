@@ -39,10 +39,24 @@ def test_build_publish_plan_reference_folder():
     assert plan.repo == "acme/kb"
 
 
-def test_build_publish_plan_branch_suffix_is_unique():
+def test_build_publish_plan_branch_suffix_is_idempotent_for_same_document():
     doc = processed_doc(type="reference", title="Security Standard")
     plan_a = build_publish_plan(doc, "acme/kb", today=date(2026, 6, 14))
     plan_b = build_publish_plan(doc, "acme/kb", today=date(2026, 6, 14))
+    assert plan_a.branch == plan_b.branch
+
+
+def test_build_publish_plan_branch_suffix_changes_with_document():
+    plan_a = build_publish_plan(
+        processed_doc(type="reference", title="Security Standard"),
+        "acme/kb",
+        today=date(2026, 6, 14),
+    )
+    plan_b = build_publish_plan(
+        processed_doc(type="reference", title="Security Standard", body="Changed body"),
+        "acme/kb",
+        today=date(2026, 6, 14),
+    )
     assert plan_a.branch != plan_b.branch
 
 
@@ -56,6 +70,11 @@ def test_build_publish_plan_docs_root_strips_slashes():
     doc = processed_doc(type="how-to", title="Deploy the app")
     plan = build_publish_plan(doc, "acme/kb", today=date(2026, 6, 14), docs_root="/kb/docs/", branch_suffix="x")
     assert plan.file_path == "kb/docs/how-to/deploy-the-app.md"
+
+
+def test_build_publish_plan_rejects_path_traversal():
+    with pytest.raises(Exception, match="unsafe path"):
+        build_publish_plan(processed_doc(), "acme/kb", docs_root="../../tmp")
 
 
 def test_build_markdown_quotes_special_char_tags():

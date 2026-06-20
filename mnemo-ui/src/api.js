@@ -45,3 +45,17 @@ export async function postJson({ apiUrl, apiToken }, path, body) {
 
   return response.json();
 }
+
+export async function getJson({ apiUrl, apiToken }, path) {
+  const headers = {};
+  const token = String(apiToken || '').trim();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(`${normalizeApiUrl(apiUrl)}${path}`, {
+    headers,
+    credentials: 'omit',
+    referrerPolicy: 'no-referrer',
+  });
+  if (response.status === 401) throw new Error('Authentication failed. Check MNEMO_API_TOKEN.');
+  if (!response.ok) throw new Error(`Request failed (${response.status})`);
+  return response.json();
+}

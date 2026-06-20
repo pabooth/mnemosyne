@@ -1,25 +1,51 @@
-from pydantic import BaseModel
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+DiataxisType = Literal["tutorial", "how-to", "reference", "explanation"]
+
+MAX_DOCUMENT_CHARS = 1_000_000
+MAX_BODY_CHARS = 1_000_000
 
 
 class DocumentInput(BaseModel):
-    title: str = ""
-    owner: str = ""
-    type: str = ""
-    sub_label: str = ""
-    content: str
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    title: str = Field(default="", max_length=200)
+    owner: str = Field(default="", max_length=100)
+    type: DiataxisType | Literal[""] = ""
+    sub_label: str = Field(default="", max_length=100, pattern=r"^[\w ./-]*$")
+    content: str = Field(min_length=1, max_length=MAX_DOCUMENT_CHARS)
+
+    @field_validator("content")
+    @classmethod
+    def content_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("content must not be blank")
+        return value
 
 
 class ProcessedDocument(BaseModel):
-    title: str
-    type: str
-    sub_label: str = ""
-    status: str = "draft"
-    tags: list[str]
-    summary: str
-    owner: str
-    last_reviewed: str
-    flags: list[str]
-    body: str
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    title: str = Field(min_length=1, max_length=200)
+    type: DiataxisType
+    sub_label: str = Field(default="", max_length=100, pattern=r"^[\w ./-]*$")
+    status: Literal["draft", "review"] = "draft"
+    tags: list[str] = Field(max_length=25)
+    summary: str = Field(min_length=1, max_length=1_000)
+    owner: str = Field(min_length=1, max_length=100)
+    last_reviewed: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    flags: list[str] = Field(max_length=50)
+    body: str = Field(min_length=1, max_length=MAX_BODY_CHARS)
+
+    @field_validator("tags", "flags")
+    @classmethod
+    def validate_list_values(cls, values: list[str]) -> list[str]:
+        cleaned = [value.strip() for value in values]
+        if any(not value or len(value) > 200 for value in cleaned):
+            raise ValueError("list values must contain between 1 and 200 characters")
+        return cleaned
 
 
 class PublishResult(BaseModel):

@@ -54,6 +54,12 @@ async def test_execute_publish_plan_reuses_existing_pr_on_422():
     respx.post(f"{GITHUB_API}/repos/acme/kb/git/refs").mock(
         return_value=httpx.Response(422, json={})
     )
+    respx.get(f"{GITHUB_API}/repos/acme/kb/git/ref/heads/{plan.branch}").mock(
+        return_value=httpx.Response(200, json={"object": {"sha": "existing"}})
+    )
+    respx.get(f"{GITHUB_API}/repos/acme/kb/contents/{plan.file_path}").mock(
+        return_value=httpx.Response(404, json={})
+    )
     respx.put(f"{GITHUB_API}/repos/acme/kb/contents/{plan.file_path}").mock(
         return_value=httpx.Response(200, json={})
     )

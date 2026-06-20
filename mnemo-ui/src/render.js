@@ -1,9 +1,9 @@
 import { CONTENT_TYPES, INGEST_STEPS, PREVIEW_STEPS } from './config.js';
-import { buildPayload, postJson } from './api.js';
+import { buildPayload, getJson, postJson } from './api.js';
 import { mockIngest, mockPreview } from './mock-data.js';
 import { renderMarkdown } from './markdown.js';
 import { escapeHtml, normalizeApiUrl, safeExternalUrl } from './security.js';
-import { safeStorageSet } from './storage.js';
+import { safeSessionStorageSet, safeStorageSet } from './storage.js';
 
 let timers = [];
 
@@ -59,7 +59,10 @@ function titleCaseType(type) {
 
 async function runPipeline(store, resultType) {
   const state = store.getState();
-  if (!state.content.trim()) {
+  const reviewedDocument = resultType === 'ingest' && state.resultType === 'preview'
+    ? documentFromResult(state)
+    : null;
+  if (!reviewedDocument && !state.content.trim()) {
     store.setState({ contentError: 'Document content is required' });
     return;
   }
@@ -78,9 +81,14 @@ async function runPipeline(store, resultType) {
 
   try {
     let result;
-    if (state.useMock) {
+    if (reviewedDocument && !state.useMock) {
+      const publish = await postJson(state, '/api/publish', reviewedDocument);
+      result = { document: reviewedDocument, publish };
+    } else if (state.useMock) {
       await delay(ingest ? 900 : 700);
-      result = ingest ? mockIngest(state) : mockPreview(state);
+      result = ingest && reviewedDocument
+        ? { document: reviewedDocument, publish: mockIngest(state).publish }
+        : ingest ? mockIngest(state) : mockPreview(state);
     } else {
       result = await postJson(state, ingest ? '/api/ingest' : '/api/process', buildPayload(state));
     }
@@ -95,7 +103,17 @@ async function runPipeline(store, resultType) {
 }
 
 function setInput(store, key, value) {
-  store.setState({ [key]: value, ...(key === 'content' ? { contentError: null } : {}) });
+  store.updateState({ [key]: value, ...(key === 'content' ? { contentError: null } : {}) });
+}
+
+async function loadHistory(store) {
+  store.setState({ showHistory: true, historyError: null });
+  try {
+    const history = await getJson(store.getState(), '/api/jobs?limit=50');
+    store.setState({ history });
+  } catch (error) {
+    store.setState({ historyError: error.message });
+  }
 }
 
 function renderHeader(state) {
@@ -109,6 +127,7 @@ function renderHeader(state) {
         </div>
       </div>
       <div class="header-actions">
+        <button class="icon-button" type="button" data-action="open-history" aria-label="Submission history">History</button>
         <button class="icon-button" type="button" data-action="open-settings" aria-label="API settings">Settings</button>
       </div>
     </header>
@@ -141,6 +160,10 @@ function renderForm(state) {
         <span>Document content</span>
         <textarea class="${state.contentError ? 'has-error' : ''}" data-field="content" placeholder="Paste source material here">${content}</textarea>
         ${state.contentError ? `<small class="field-error">${escapeHtml(state.contentError)}</small>` : ''}
+      </label>
+      <label class="secondary-button file-button">
+        Upload Markdown or text
+        <input type="file" data-file-input accept=".md,.markdown,.txt,text/plain,text/markdown">
       </label>
 
       <div class="form-grid">
@@ -211,6 +234,29 @@ function renderResult(state) {
   const prUrl = state.result && state.result.publish ? safeExternalUrl(state.result.publish.pr_url) : '';
   const tags = (document.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
   const flags = (document.flags || []).map((flag) => `<li>${escapeHtml(flag)}</li>`).join('');
+  const previewEditor = state.resultType === 'preview' ? `
+    <details class="preview-editor">
+      <summary>Edit reviewed document</summary>
+      <div class="form-grid">
+        <label class="field">
+          <span>Title</span>
+          <input data-result-field="title" value="${escapeHtml(document.title || '')}">
+        </label>
+        <label class="field">
+          <span>Owner</span>
+          <input data-result-field="owner" value="${escapeHtml(document.owner || '')}">
+        </label>
+        <label class="field">
+          <span>Summary</span>
+          <textarea data-result-field="summary">${escapeHtml(document.summary || '')}</textarea>
+        </label>
+      </div>
+      <label class="field">
+        <span>Markdown body</span>
+        <textarea class="body-editor" data-result-field="body">${escapeHtml(document.body || '')}</textarea>
+      </label>
+    </details>
+  ` : '';
 
   return `
     <section class="panel result-panel">
@@ -230,6 +276,7 @@ function renderResult(state) {
       ${tags ? `<div class="tags">${tags}</div>` : ''}
       ${flags ? `<div class="flags"><p>Review flags</p><ul>${flags}</ul></div>` : ''}
 
+      ${previewEditor}
       <div class="markdown-body">${renderMarkdown(document.body || '')}</div>
 
       ${state.resultType === 'preview' ? `
@@ -284,6 +331,35 @@ function renderSettings(state) {
   `;
 }
 
+function renderHistory(state) {
+  if (!state.showHistory) return '';
+  const rows = state.history.map((job) => `
+    <li>
+      <div>
+        <strong>${escapeHtml(job.kind)}</strong>
+        <span>${escapeHtml(job.status)}</span>
+      </div>
+      <small>${escapeHtml(job.created_at || '')}</small>
+      ${job.error ? `<p class="field-error">${escapeHtml(job.error)}</p>` : ''}
+      ${job.result && job.result.publish && safeExternalUrl(job.result.publish.pr_url)
+        ? `<a href="${escapeHtml(safeExternalUrl(job.result.publish.pr_url))}" target="_blank" rel="noopener noreferrer">Pull request</a>`
+        : ''}
+    </li>
+  `).join('');
+  return `
+    <div class="modal-backdrop" data-action="close-history">
+      <section class="settings-modal history-modal" role="dialog" aria-modal="true" aria-label="Submission history">
+        <div class="modal-heading">
+          <h2>Submission history</h2>
+          <button class="icon-button" type="button" data-action="close-history">Close</button>
+        </div>
+        ${state.historyError ? `<p class="error-box">${escapeHtml(state.historyError)}</p>` : ''}
+        <ul class="history-list">${rows || '<li>No jobs have been submitted.</li>'}</ul>
+      </section>
+    </div>
+  `;
+}
+
 function bindEvents(root, store) {
   root.querySelectorAll('[data-field]').forEach((field) => {
     field.addEventListener('input', (event) => {
@@ -298,10 +374,42 @@ function bindEvents(root, store) {
         store.setState({ apiUrl: value });
       }
       if (key === 'apiToken') {
-        safeStorageSet('mnemo_token', event.currentTarget.value);
+        safeSessionStorageSet('mnemo_token', event.currentTarget.value);
       }
     });
   });
+
+  root.querySelectorAll('[data-result-field]').forEach((field) => {
+    field.addEventListener('change', (event) => {
+      const state = store.getState();
+      const document = documentFromResult(state);
+      if (!document) return;
+      store.setState({
+        result: {
+          ...document,
+          [event.currentTarget.dataset.resultField]: event.currentTarget.value,
+        },
+      });
+    });
+  });
+
+  const fileInput = root.querySelector('[data-file-input]');
+  if (fileInput) {
+    fileInput.addEventListener('change', async (event) => {
+      const file = event.currentTarget.files && event.currentTarget.files[0];
+      if (!file) return;
+      if (file.size > 1_000_000) {
+        store.setState({ contentError: 'File is larger than the 1 MB document limit' });
+        return;
+      }
+      const content = await file.text();
+      store.setState({
+        content,
+        title: store.getState().title || file.name.replace(/\.(md|markdown|txt)$/i, ''),
+        contentError: null,
+      });
+    });
+  }
 
   root.querySelectorAll('[data-action]').forEach((control) => {
     control.addEventListener('click', (event) => {
@@ -314,7 +422,9 @@ function bindEvents(root, store) {
       }
       if (action === 'content-type') store.setState({ contentType: event.currentTarget.dataset.id });
       if (action === 'open-settings') store.setState({ showSettings: true });
+      if (action === 'open-history') loadHistory(store);
       if (action === 'close-settings' && event.target === event.currentTarget) store.setState({ showSettings: false });
+      if (action === 'close-history' && event.target === event.currentTarget) store.setState({ showHistory: false });
       if (action === 'toggle-mock') {
         const useMock = !store.getState().useMock;
         safeStorageSet('mnemo_mock', String(useMock));
@@ -323,8 +433,9 @@ function bindEvents(root, store) {
     });
   });
 
-  const modal = root.querySelector('.settings-modal');
-  if (modal) modal.addEventListener('click', (event) => event.stopPropagation());
+  root.querySelectorAll('.settings-modal').forEach((modal) => {
+    modal.addEventListener('click', (event) => event.stopPropagation());
+  });
 }
 
 export function renderApp(root, store, state) {
@@ -343,6 +454,7 @@ export function renderApp(root, store, state) {
         ${workArea}
       </main>
       ${renderSettings(state)}
+      ${renderHistory(state)}
     </div>
   `;
 

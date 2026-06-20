@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+exec docker compose \
+  --env-file /etc/mnemosyne/mnemosyne.env \
+  -f /usr/share/mnemosyne/docker-compose.yml \
+  "$@"
+

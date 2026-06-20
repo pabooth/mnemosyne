@@ -1,84 +1,117 @@
 ![Mnemosyne](./header.png)
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
-![Build](https://img.shields.io/github/actions/workflow/status/pabooth/mnemosyne/release.yml)
+![CI](https://img.shields.io/github/actions/workflow/status/pabooth/mnemosyne/ci.yml?branch=main)
 ![Version](https://img.shields.io/github/v/release/pabooth/mnemosyne)
 
----
+Mnemosyne is an open-source, AI-assisted document ingestion engine. It
+classifies source material using the [Diátaxis framework](https://diataxis.fr),
+improves its structure and metadata, and opens a pull request for human review.
+It never merges generated content.
 
-Mnemosyne is an open source, AI-assisted knowledge management system.
+The project contains:
 
-Feed it a document and it classifies it by type — reference, how-to, tutorial, or explanation — according to the [Diátaxis framework](https://diataxis.fr). It corrects spelling and grammar, flags gaps, enriches with metadata, and opens a pull request for human review.
+- `mnemo-core`: REST API, MCP server, processing pipeline, durable jobs, audit
+  history, GitHub publishing, webhook intake, and knowledge-base self-audit.
+- `mnemo-ui`: optional static browser interface for previewing, editing, and
+  submitting documents.
 
-Nothing reaches your knowledge base without approval.
+## Quick start
 
-Mnemosyne ships as two components: **mnemo-ui**, a web interface, and **mnemo-core**, the backend engine. Core can be accessed programmatically via REST API, or integrated with your AI assistant via MCP.
+Requirements:
 
-Built for teams that care about the quality and governance of their knowledge, not just the volume of it.
-
----
-
-## Roadmap
-
-- [ ] GitHub webhook intake
-- [ ] Pluggable LLM provider support
-- [ ] Self-audit capability — staleness detection, gap analysis, and cross-reference checking
-- [ ] Observability via OpenTelemetry with a reference Prometheus/Grafana stack
-- [ ] `.deb` / `.rpm` packaging
-- [ ] Additional knowledge base provider documentation (Docusaurus, VitePress, Obsidian, SharePoint)
-
----
-
-## Architecture
-
-For a full description of Mnemosyne's architecture, component design, and architectural decisions, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md).
-
----
-
-## Installation
-
-> Full installation and deployment guides are coming soon. In the meantime, see [`/deploy`](./deploy) for Docker and reverse proxy configurations.
-
-### Prerequisites
-
-- Docker and Docker Compose
-- An Anthropic API key
-
-### Quick start
+- Docker with Docker Compose
+- credentials for Anthropic, OpenAI-compatible APIs, DeepSeek, or Ollama
+- a GitHub token with permission to create branches, files, and pull requests
 
 ```bash
-# Coming soon
+cp .env.example .env
 ```
 
----
+Set `MNEMO_API_TOKEN`, `GITHUB_TOKEN`, `GITHUB_REPO`, and your LLM credentials,
+then run:
 
-## Configuration
+```bash
+docker compose up --build
+```
 
-> Full configuration reference coming soon.
+Open <http://localhost:8888>. Enter `MNEMO_API_TOKEN` under **Settings**.
+The token is kept in browser session storage rather than persistent local
+storage.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ANTHROPIC_API_KEY` | Your Anthropic API key | — |
-| `MNEMO_PORT_UI` | mnemo-ui port | `8888` |
-| `MNEMO_PORT_CORE` | mnemo-core port | `7777` |
+For the optional telemetry stack:
 
-### MCP integration
+```bash
+docker compose --profile observability up --build
+```
 
-mnemo-core exposes an MCP server for intake. Connect it to your AI assistant to submit documents directly from your workflow.
+See [the Docker deployment guide](./docs/deployment/docker-compose.md).
+Tagged releases also publish `.deb` and `.rpm` deployment packages. After
+installation, configure `/etc/mnemosyne/mnemosyne.env` and run
+`mnemosyne up -d`.
 
-> MCP configuration guide coming soon.
+## Intake interfaces
 
----
+| Interface | Purpose |
+|---|---|
+| `POST /api/process` | Synchronous preview |
+| `POST /api/ingest` | Synchronous processing and pull request |
+| `POST /api/publish` | Publish an edited, reviewed preview without rerunning the LLM |
+| `POST /api/jobs` | Durable asynchronous process or ingest job |
+| `POST /api/jobs/batch` | Batch submission |
+| `POST /api/sources/file` | Markdown or text upload |
+| `POST /api/sources/url` | Allow-listed URL intake |
+| `POST /api/sources/github` | File intake from the configured GitHub repository |
+| `POST /api/webhooks/github` | Signed GitHub push webhook |
+| `/mcp/sse` | MCP intake server |
 
-## Contributing
+All `/api` intake routes require `Authorization: Bearer <token>`. GitHub
+webhooks use `X-Hub-Signature-256` instead.
 
-> Contributing guidelines coming soon.
+## Providers
 
-We welcome contributions. Please open an issue before submitting a pull request for anything beyond small fixes.
+Set `LLM_PROVIDER` to one of:
 
----
+- `anthropic`
+- `openai`
+- `deepseek`
+- `ollama`
+
+OpenAI-compatible endpoints can be selected using `OPENAI_BASE_URL`. Provider
+and operational settings are documented in
+[configuration.md](./docs/configuration.md).
+
+## Governance and safety
+
+- Generated content can only be published to a feature branch and pull request.
+- Preview output can be edited and then submitted verbatim through
+  `/api/publish`.
+- Inputs and generated outputs are validated and size-limited.
+- Requests have configurable rate, concurrency, and timeout limits.
+- Named API tokens support `submitter` and `admin` roles.
+- Jobs and mutating API operations are recorded in SQLite.
+- URL ingestion is disabled until an explicit hostname allow-list is set.
+
+Repository branch protection must still require human approval and prevent the
+Mnemosyne service account from merging.
+
+## Development
+
+```bash
+cd mnemo-core
+python -m venv .venv
+.venv/bin/pip install -e ".[dev]"
+.venv/bin/pytest
+
+cd ../mnemo-ui
+npm install
+npm test
+npm run build
+```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md), [SECURITY.md](./SECURITY.md), and
+[ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ## License
 
-Mnemosyne is released under the [MIT License](./LICENSE).
-
+MIT. See [LICENSE](./LICENSE).

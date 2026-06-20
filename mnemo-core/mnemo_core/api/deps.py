@@ -21,7 +21,7 @@ def build_runner(
         )
     if llm is None:
         llm = get_provider(cfg)
-    return PipelineRunner(llm, publisher)
+    return PipelineRunner(llm, publisher, timeout_seconds=cfg.request_timeout_seconds)
 
 
 def get_publisher(cfg: Settings = Depends(get_settings)) -> Publisher:
@@ -39,5 +39,6 @@ def get_llm(cfg: Settings = Depends(get_settings)) -> LLMProvider:
 def get_runner(
     publisher: Publisher = Depends(get_publisher),
     llm: LLMProvider = Depends(get_llm),
+    cfg: Settings = Depends(get_settings),
 ) -> PipelineRunner:
-    return PipelineRunner(llm, publisher)
+    return PipelineRunner(llm, publisher, timeout_seconds=cfg.request_timeout_seconds)

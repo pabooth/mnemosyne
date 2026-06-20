@@ -101,16 +101,23 @@ flowchart TB
 
 The core ingestion engine. Exposes two intake interfaces — a REST API and an MCP server — both of which feed the same processing pipeline. Can be deployed and operated independently of the web UI.
 
-The REST API has two external workflow shapes:
+The REST API supports synchronous and durable asynchronous workflow shapes:
 
 - `POST /api/process` accepts a raw document and returns a processed preview. It does not write to GitHub and does not raise a pull request.
 - `POST /api/ingest` accepts a raw document, processes it, commits the processed output to a branch, and raises a pull request for human review.
+- `POST /api/publish` accepts an edited `ProcessedDocument` and publishes that exact reviewed output without another LLM call.
+- `POST /api/jobs` and `/api/jobs/batch` create durable jobs whose status and results are stored in SQLite.
 
-Publishing is an internal capability of `mnemo-core`, used by the ingest workflow after processing. It is not exposed as a standalone public API operation.
+Publishing remains a governed capability of `mnemo-core`. `/api/publish`
+exists so a human-edited preview can be committed exactly as reviewed; it
+still creates only a feature branch and pull request.
 
 ### mnemo-ui
 
-An optional web frontend for document submission and pipeline status. Communicates directly with mnemo-core via the REST API. In production, both are fronted by a reverse proxy.
+An optional framework-free static web frontend for document submission,
+preview editing, job history, and pipeline status. It communicates with
+mnemo-core through the REST API. In production, both are fronted by a reverse
+proxy.
 
 ### Ingestion Pipeline
 
@@ -152,13 +159,19 @@ Preview-only processing is allowed as a non-mutating workflow for user interface
 
 ### Reverse Proxy
 
-Optional. Not required for local development. In production, a reverse proxy sits in front of both mnemo-ui and mnemo-core, routing `/` to the UI and `/api/` to the core. Stub configurations for common options are provided in `/deploy/reverse-proxy/`.
+Optional. Not required for local development. In production, a reverse proxy
+sits in front of both mnemo-ui and mnemo-core, routing `/` to the UI and
+`/api/` and `/mcp/` to core. A reference Nginx configuration is provided in
+`/deploy/reverse-proxy/`.
 
 `mnemo-core` is intended to be private rather than directly exposed to the internet. Even so, REST and MCP intake endpoints should require a simple authentication layer so accidental exposure, misrouting, or lateral access does not grant unauthenticated access to LLM processing or PR creation.
 
 ### Observability
 
-Optional. mnemo-core is instrumented with OpenTelemetry and emits traces, metrics, and structured logs. A reference Prometheus and Grafana stack is provided in `/deploy/observability/`. The OTLP endpoint is configurable, allowing export to any compatible backend.
+Optional. mnemo-core is instrumented with OpenTelemetry and emits traces,
+metrics, and structured JSON logs. A reference collector, Prometheus, and
+Grafana stack is provided in `/deploy/observability/`. The OTLP endpoint is
+configurable.
 
 ***
 
@@ -181,8 +194,9 @@ The MCP server is an intake interface only. It does not expose KB query or retri
 
 Mnemosyne is distributed as:
 
-- Docker images (`mnemo-core`, `mnemo-ui`, `mnemo` combined)
-- Release archives (`mnemo-core-x.x.x.tgz`, `mnemo-ui-x.x.x.tgz`, `mnemo-x.x.x.tgz`)
+- Docker images (`mnemo-core` and `mnemo-ui`)
+- Python wheel and source distribution for `mnemo-core`
+- Release archives for core, UI, and the complete deployment
 
 A `docker-compose.yml` in the root provides a local development environment. Production deployment options are documented in `/docs/deployment/`.
 
@@ -193,12 +207,12 @@ A `docker-compose.yml` in the root provides a local development environment. Pro
 ```typescript
 /
 ├── mnemo-core/        # REST API, MCP server, ingestion pipeline
-├── mnemo-ui/          # React web frontend
+├── mnemo-ui/          # Framework-free static web frontend
 ├── deploy/
 │   ├── reverse-proxy/ # Stub configs: Caddy, nginx, Traefik
 │   └── observability/ # Prometheus + Grafana stack
 ├── docs/
-│   ├── adr/           # Architecture Decision Records
+│   ├── ADRs/          # Architecture Decision Records
 │   └── deployment/    # Deployment guides
 ├── docker-compose.yml # Local development
 └── LICENSE
@@ -208,7 +222,7 @@ A `docker-compose.yml` in the root provides a local development environment. Pro
 
 ## Architecture Decision Records
 
-Key decisions governing this project are documented as ADRs in `/docs/adr/`.
+Key decisions governing this project are documented as ADRs in `/docs/ADRs/`.
 
 | ADR | Decision                                         | Status   |
 | --- | ------------------------------------------------ | -------- |
