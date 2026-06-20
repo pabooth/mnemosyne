@@ -1,8 +1,7 @@
 ![Mnemosyne](./header.png)
 
-[![Tests](https://img.shields.io/github/actions/workflow/status/pabooth/mnemosyne/tests.yml)](https://github.com/pabooth/mnemosyne/actions/workflows/tests.yml)
-![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![CI](https://img.shields.io/github/actions/workflow/status/pabooth/mnemosyne/ci.yml?branch=main)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/github/v/release/pabooth/mnemosyne)
 
 Mnemosyne is an open-source, AI-assisted document ingestion engine. It
