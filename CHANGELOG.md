@@ -10,16 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.2] - 2026-06-21
 
 ### Changed
+
 - Changes made to the Coderabbit auto-review tooling
 
 ## [1.0.1] - 2026-06-20
 
 ### Changed
+
 - Fixed the build system config
 
 ## [1.0.0] - 2026-06-20
 
 ### Added
+
 - Pull request and push CI for core, UI, containers, and Compose validation
 - Docker Compose deployment with reverse proxy and optional observability stack
 - Release archives, Python packages, container publishing, and `.deb`/`.rpm` packaging
@@ -32,17 +35,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deployment, configuration, MCP, provider, contribution, and security documentation
 
 ### Changed
+
 - GitHub publishing is idempotent for identical reviewed documents and safely handles existing branches/files
 - Browser API tokens now use session storage instead of persistent local storage
 - The UI defaults to live API mode and supports editing previews before submission
 
 ### Fixed
+
 - Invalid `mnemo-ui/package.json` that prevented UI tests and builds
 - Python source distributions accidentally including local virtual environments
 
 ## [0.1.0] - 2026-06-18
 
 ### Added
+
 - Initial release
 - MCP intake interface for document ingestion
 - Human-in-the-loop review pipeline via GitHub PRs
