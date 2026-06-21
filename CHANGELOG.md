@@ -13,10 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changes made to the Coderabbit auto-review tooling
 
 ## [1.0.1] - 2026-06-20
+
 ### Changed
 - Fixed the build system config
 
 ## [1.0.0] - 2026-06-20
+
 ### Added
 - Pull request and push CI for core, UI, containers, and Compose validation
 - Docker Compose deployment with reverse proxy and optional observability stack
@@ -39,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Python source distributions accidentally including local virtual environments
 
 ## [0.1.0] - 2026-06-18
+
 ### Added
 - Initial release
 - MCP intake interface for document ingestion
