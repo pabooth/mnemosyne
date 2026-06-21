@@ -19,4 +19,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          REVIEWS=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}/reviews" --jq '[.[] | select(.user.login |
+          REVIEWS=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}/reviews" --jq '[.[] | select(.user.login | test("coderabbit"; "i"))]')
+
+          COUNT=$(echo "$REVIEWS" | jq 'length')
+
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No CodeRabbit review found on this PR (CodeRabbit may have hit a rate limit or skipped this PR)."
+            echo "This check requires a genuine CodeRabbit review before merge."
+            exit 1
+          fi
+
+          echo "Found $COUNT CodeRabbit review(s). Check passed."
