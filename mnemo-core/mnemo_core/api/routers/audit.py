@@ -22,6 +22,6 @@ async def run_knowledge_base_audit(
     try:
         return await audit_knowledge_base(cfg)
     except PipelineError as error:
-        raise HTTPException(status_code=502, detail=str(error))
+        raise HTTPException(status_code=502, detail=str(error)) from error
     except Exception:
-        raise HTTPException(status_code=502, detail="Knowledge-base audit failed")
+        raise HTTPException(status_code=502, detail="Knowledge-base audit failed") from None

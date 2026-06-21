@@ -1,4 +1,3 @@
-import pytest
 
 from mnemo_core.auth import auth_is_configured, bearer_token_is_valid
 from mnemo_core.config import Settings

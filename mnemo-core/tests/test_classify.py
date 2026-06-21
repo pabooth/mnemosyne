@@ -1,7 +1,5 @@
 from datetime import date
 
-import pytest
-
 from mnemo_core.pipeline.classify import classify_augment_format
 from mnemo_core.pipeline.prompts import STANDARD_TEMPLATE, build_user_message
 from tests.conftest import FakeLLM, llm_json_response, sample_input

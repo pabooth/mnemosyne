@@ -21,7 +21,7 @@ async def publish(
     try:
         return await runner.publish(req)
     except PipelineError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        raise HTTPException(status_code=502, detail=str(e)) from e
     except Exception:
         logger.exception("Unexpected error during publish")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error") from None

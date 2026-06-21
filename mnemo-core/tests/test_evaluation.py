@@ -1,7 +1,6 @@
 import pytest
 
-from mnemo_core import __version__
-from mnemo_core import evaluation
+from mnemo_core import __version__, evaluation
 
 
 def test_evaluation_cli_reports_package_version(monkeypatch, capsys):
