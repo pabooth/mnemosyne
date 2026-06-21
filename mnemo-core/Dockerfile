@@ -7,6 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY pyproject.toml ./
+COPY README.md LICENSE ./
 COPY mnemo_core/ ./mnemo_core/
 
 RUN pip install .

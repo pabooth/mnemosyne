@@ -2,6 +2,7 @@ import asyncio
 import time
 
 from opentelemetry import metrics
+
 from ..llm.base import LLMProvider
 from ..models import DocumentInput, IngestResult, ProcessedDocument, PublishResult
 from . import ProcessingError, PublishError

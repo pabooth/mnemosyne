@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import json
 
+from . import __version__
 from .config import get_settings
 from .llm.factory import get_provider
 from .models import DocumentInput
@@ -58,7 +59,15 @@ async def evaluate() -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the Mnemosyne Diátaxis evaluation set")
+    parser = argparse.ArgumentParser(
+        prog="mnemo-evaluate",
+        description="Run the Mnemosyne Diátaxis evaluation set",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
     parser.add_argument("--minimum-accuracy", type=float, default=0.75)
     args = parser.parse_args()
     report = asyncio.run(evaluate())

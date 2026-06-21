@@ -1,9 +1,8 @@
 from fastapi.testclient import TestClient
 
 from mnemo_core.api.app import create_app
-from mnemo_core.api.deps import get_runner
+from mnemo_core.api.deps import build_runner, get_runner
 from mnemo_core.config import Settings
-from mnemo_core.api.deps import build_runner
 from tests.conftest import FakeLLM, FakePublisher, llm_json_response
 
 

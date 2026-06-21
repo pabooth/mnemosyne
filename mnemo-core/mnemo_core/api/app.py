@@ -1,17 +1,15 @@
-from collections.abc import Callable
-
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .. import __version__
 from ..config import Settings, configure_settings, get_settings
-from ..mcp.server import create_mcp_asgi
 from ..jobs import JobManager, JobStore
+from ..mcp.server import create_mcp_asgi
 from ..observability.logging import setup_logging
 from ..observability.telemetry import setup_telemetry
 from ..pipeline.runner import PipelineRunner
-from .auth import require_api_token
-from .auth import require_admin
 from .audit import AuditMiddleware
+from .auth import require_admin, require_api_token
 from .deps import build_runner
 from .limits import IntakeLimitsMiddleware
 from .routers import audit, health, ingest, jobs, process, publish, sources, webhooks
@@ -23,7 +21,7 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="mnemo-core",
-        version="0.1.0",
+        version=__version__,
         description="Mnemosyne ingestion engine — REST API and MCP server",
     )
     app.state.settings = get_settings()
@@ -58,7 +56,9 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
     )
     app.include_router(webhooks.router)
 
-    runner_factory: Callable[[], PipelineRunner] = lambda: build_runner(get_settings())
+    def runner_factory() -> PipelineRunner:
+        return build_runner(get_settings())
+
     app.mount("/mcp", create_mcp_asgi(runner_factory=runner_factory))
 
     setup_telemetry(app)

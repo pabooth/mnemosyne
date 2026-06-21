@@ -2,7 +2,29 @@
 name = "mnemo-core"
 version = "1.1.0"
 description = "Mnemosyne ingestion engine — REST API, MCP server, and document processing pipeline"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
+authors = [
+    { name = "Paul Booth" },
+]
+keywords = [
+    "documentation",
+    "knowledge-base",
+    "llm",
+    "mcp",
+    "diataxis",
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: FastAPI",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Documentation",
+]
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.32",
@@ -19,6 +41,12 @@ dependencies = [
     "opentelemetry-instrumentation-httpx>=0.46b0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/pabooth/mnemosyne"
+Documentation = "https://github.com/pabooth/mnemosyne/tree/main/docs"
+Issues = "https://github.com/pabooth/mnemosyne/issues"
+Source = "https://github.com/pabooth/mnemosyne"
+
 [project.scripts]
 mnemo-evaluate = "mnemo_core.evaluation:main"
 
@@ -27,7 +55,19 @@ dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
     "respx>=0.21",
+    "ruff>=0.8,<1",
 ]
+
+[tool.ruff]
+line-length = 130
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "S"]
+ignore = ["S101", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S106"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

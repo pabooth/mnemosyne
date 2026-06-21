@@ -1,6 +1,5 @@
-from typing import Annotated
-
 import hashlib
+from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, Request, status
 

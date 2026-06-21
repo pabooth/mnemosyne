@@ -46,7 +46,7 @@ async def upload_file(
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="Uploaded document must be UTF-8")
+        raise HTTPException(status_code=400, detail="Uploaded document must be UTF-8") from None
     document = DocumentInput(
         title=(file.filename or "").rsplit("/", 1)[-1].rsplit(".", 1)[0],
         content=text,

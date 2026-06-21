@@ -1,0 +1,50 @@
+name: Feature request
+description: Suggest an improvement or new capability
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include API keys, GitHub tokens, private documents, or generated confidential content.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What problem would this solve, and who encounters it?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior or workflow you would like.
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - mnemo-core
+        - mnemo-ui
+        - Docker or deployment
+        - MCP integration
+        - Documentation
+        - Unsure or cross-cutting
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe current workarounds or alternative approaches, if any.
+  - type: textarea
+    id: governance
+    attributes:
+      label: Security and governance impact
+      description: Note any effect on authentication, publishing, human review, private data, or external services.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add sanitized examples, diagrams, or links that clarify the request.

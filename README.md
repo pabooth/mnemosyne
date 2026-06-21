@@ -40,6 +40,12 @@ Open <http://localhost:8888>. Enter `MNEMO_API_TOKEN` under **Settings**.
 The token is kept in browser session storage rather than persistent local
 storage.
 
+The main interface listens on all host interfaces by default. Set
+`MNEMO_UI_BIND_ADDRESS=127.0.0.1` for local-only access, or set it to a
+specific host IP address. Direct core and observability ports default to
+loopback. See [the Docker deployment guide](./docs/deployment/docker-compose.md)
+for all host-binding settings.
+
 For the optional telemetry stack:
 
 ```bash
@@ -50,6 +56,12 @@ See [the Docker deployment guide](./docs/deployment/docker-compose.md).
 Tagged releases also publish `.deb` and `.rpm` deployment packages. After
 installation, configure `/etc/mnemosyne/mnemosyne.env` and run
 `mnemosyne up -d`.
+
+Installed deployment packages report their version with:
+
+```bash
+mnemosyne --version
+```
 
 ## Intake interfaces
 
@@ -111,7 +123,8 @@ npm run build
 ```
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md), [SECURITY.md](./SECURITY.md), and
-[ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+[ARCHITECTURE.md](./docs/ARCHITECTURE.md). Support expectations are documented
+in [SUPPORT.md](./SUPPORT.md).
 
 ## License
 
