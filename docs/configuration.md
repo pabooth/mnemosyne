@@ -41,6 +41,37 @@ The shared `MNEMO_API_TOKEN` is treated as an administrator.
 The in-process limiter is suitable for a single core instance. A multi-instance
 deployment should enforce distributed limits at its gateway.
 
+## Host bindings
+
+Docker Compose host bindings can be controlled without editing the Compose
+files:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `MNEMO_UI_BIND_ADDRESS` | `0.0.0.0` | Address for the main reverse-proxy interface |
+| `MNEMO_CORE_BIND_ADDRESS` | `127.0.0.1` | Address for direct core API access |
+| `MNEMO_OBSERVABILITY_BIND_ADDRESS` | `127.0.0.1` | Address for Grafana and Prometheus |
+| `MNEMO_PORT_UI` | `8888` | Host port for the main interface |
+| `MNEMO_PORT_CORE` | `7777` | Host port for direct core API access |
+
+Use `0.0.0.0` to listen on all host interfaces, `127.0.0.1` for local access
+only, or a specific host IP address to listen only on that interface. The main
+interface defaults to all host interfaces. Direct core and observability
+access default to loopback and should remain private unless placed behind an
+authenticated TLS reverse proxy.
+
+## Runtime identity
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `MNEMO_UID` | `0` | Numeric UID used by the core container |
+| `MNEMO_GID` | `0` | Numeric GID used by the core container |
+
+Root is retained as the compatibility default. A dedicated host UID/GID is
+strongly recommended for production. The selected identity must have write
+access to the directory containing `STATE_DB_PATH`; see the
+[Docker deployment guide](./deployment/docker-compose.md#runtime-user).
+
 ## Webhook intake
 
 | Variable | Purpose |

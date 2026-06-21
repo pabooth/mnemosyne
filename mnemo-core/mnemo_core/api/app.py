@@ -3,6 +3,7 @@ from collections.abc import Callable
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .. import __version__
 from ..config import Settings, configure_settings, get_settings
 from ..mcp.server import create_mcp_asgi
 from ..jobs import JobManager, JobStore
@@ -23,7 +24,7 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="mnemo-core",
-        version="0.1.0",
+        version=__version__,
         description="Mnemosyne ingestion engine — REST API and MCP server",
     )
     app.state.settings = get_settings()

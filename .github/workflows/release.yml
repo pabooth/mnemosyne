@@ -14,17 +14,60 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Extract version
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
-      - uses: actions/setup-node@v4
+      - name: Verify version consistency
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import tomllib
+          from pathlib import Path
+
+          expected = os.environ["RELEASE_VERSION"]
+          versions = {
+              "VERSION": Path("VERSION").read_text().strip(),
+              "mnemo-core/pyproject.toml": tomllib.loads(
+                  Path("mnemo-core/pyproject.toml").read_text()
+              )["project"]["version"],
+              "mnemo-ui/package.json": json.loads(
+                  Path("mnemo-ui/package.json").read_text()
+              )["version"],
+          }
+          package_lock = json.loads(Path("mnemo-ui/package-lock.json").read_text())
+          versions["mnemo-ui/package-lock.json"] = package_lock["version"]
+          versions["mnemo-ui/package-lock.json root package"] = package_lock[
+              "packages"
+          ][""]["version"]
+
+          mismatches = {
+              source: actual
+              for source, actual in versions.items()
+              if actual != expected
+          }
+          if mismatches:
+              for source, actual in mismatches.items():
+                  print(f"{source}: expected {expected}, found {actual}")
+              raise SystemExit(1)
+
+          changelog_heading = f"## [{expected}]"
+          if changelog_heading not in Path("CHANGELOG.md").read_text():
+              raise SystemExit(f"CHANGELOG.md has no {changelog_heading} section")
+
+          print(f"All release versions match {expected}")
+          PY
+
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
 
@@ -34,6 +77,20 @@ jobs:
           pip install build ".[dev]"
           pytest -q
           python -m build
+
+      - name: Smoke-test built core wheel
+        working-directory: mnemo-core
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          test -n "$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)"
+          python -m venv /tmp/mnemo-core-release
+          /tmp/mnemo-core-release/bin/python -m pip install dist/*.whl
+          /tmp/mnemo-core-release/bin/mnemo-evaluate --version \
+            | grep -Fx "mnemo-evaluate ${RELEASE_VERSION}"
+          /tmp/mnemo-core-release/bin/python -c \
+            "from importlib.metadata import version; from mnemo_core.api.app import app; assert app.version == version('mnemo-core')"
 
       - name: Build and test UI
         working-directory: mnemo-ui
@@ -45,9 +102,20 @@ jobs:
       - name: Build release archives
         run: |
           mkdir -p release/mnemo-core release/mnemo-ui release/mnemosyne
-          cp -R mnemo-core/mnemo_core mnemo-core/pyproject.toml mnemo-core/Dockerfile LICENSE release/mnemo-core/
+          cp -R mnemo-core/mnemo_core mnemo-core/pyproject.toml mnemo-core/Dockerfile mnemo-core/README.md mnemo-core/LICENSE release/mnemo-core/
           cp -R mnemo-ui/dist mnemo-ui/nginx.conf mnemo-ui/Dockerfile LICENSE release/mnemo-ui/
-          cp -R mnemo-core mnemo-ui deploy docs docker-compose.yml .env.example README.md LICENSE VERSION release/mnemosyne/
+          git archive HEAD \
+            mnemo-core \
+            mnemo-ui \
+            deploy \
+            docs \
+            docker-compose.yml \
+            .env.example \
+            README.md \
+            LICENSE \
+            VERSION \
+            | tar -x -C release/mnemosyne
+          cp -R mnemo-ui/dist release/mnemosyne/mnemo-ui/
           tar -C release -czf "mnemo-core-${{ steps.version.outputs.VERSION }}.tgz" mnemo-core
           tar -C release -czf "mnemo-ui-${{ steps.version.outputs.VERSION }}.tgz" mnemo-ui
           tar -C release -czf "mnemosyne-${{ steps.version.outputs.VERSION }}.tgz" mnemosyne

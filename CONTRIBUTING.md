@@ -3,6 +3,10 @@
 Open an issue before substantial changes so architecture and scope can be
 agreed first.
 
+Participation in this project is governed by the
+[Code of Conduct](./CODE_OF_CONDUCT.md).
+Maintainer releases follow [RELEASING.md](./RELEASING.md).
+
 ## Checks
 
 ```bash
@@ -28,6 +32,7 @@ With provider credentials configured, run the small prompt regression suite:
 
 ```bash
 mnemo-evaluate --minimum-accuracy 0.75
+mnemo-evaluate --version
 ```
 
 This makes live provider calls and is intentionally not part of ordinary CI.

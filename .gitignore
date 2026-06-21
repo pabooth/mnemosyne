@@ -10,3 +10,9 @@ dist/
 .pdf-venv/
 
 .env
+
+*.egg-info/
+build/
+.DS_Store
+.ruff_cache/
+.claude/

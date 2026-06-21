@@ -1,3 +1,5 @@
+from importlib.metadata import version
+
 from fastapi.testclient import TestClient
 
 from mnemo_core.api.app import create_app
@@ -38,3 +40,8 @@ def test_rate_limit_is_enforced(tmp_path):
 
     assert first.status_code == 200
     assert second.status_code == 429
+
+
+def test_api_version_matches_package_metadata(tmp_path):
+    app = create_app(Settings(state_db_path=str(tmp_path / "state.db")))
+    assert app.version == version("mnemo-core")
