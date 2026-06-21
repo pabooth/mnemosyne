@@ -19,7 +19,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          REVIEWS=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}/reviews" --jq '[.[] | select(.user.login == "coderabbitai")]')
+          REVIEWS=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}/reviews" --jq '[.[] | select(.user.login == "coderabbitai[bot]")]')
 
           COUNT=$(echo "$REVIEWS" | jq 'length')
 
