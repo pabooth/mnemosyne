@@ -20,7 +20,7 @@ class MnemoCoreClient:
         async with httpx.AsyncClient(
             base_url=self.settings.mnemo_core_url.rstrip("/"),
             headers={"Authorization": f"Bearer {self.settings.mnemo_api_token}"},
-            timeout=120,
+            timeout=self.settings.mnemo_core_timeout_seconds,
         ) as client:
             response = await client.post("/api/v1/ingest", json=payload)
             response.raise_for_status()

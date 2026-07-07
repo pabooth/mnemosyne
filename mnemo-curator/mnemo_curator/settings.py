@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     mnemo_core_url: str = "http://localhost:7777"
     mnemo_api_token: str = ""
+    mnemo_core_timeout_seconds: float = 120
 
     curator_stale_after_days: int = 180
     curator_max_files: int = 500

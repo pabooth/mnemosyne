@@ -33,6 +33,7 @@ python -m venv .venv
 | `DOCS_ROOT` | Optional Markdown root within the repository |
 | `MNEMO_CORE_URL` | Base URL for `mnemo-core`, default `http://localhost:7777` |
 | `MNEMO_API_TOKEN` | Bearer token used when submitting fixes to core |
+| `MNEMO_CORE_TIMEOUT_SECONDS` | HTTP timeout for ingest requests to `mnemo-core`, default `120` |
 | `CURATOR_STALE_AFTER_DAYS` | Review staleness threshold, default `180` |
 | `CURATOR_MAX_FILES` | Maximum Markdown files per scan, default `500` |
 | `CURATOR_DEFAULT_OWNER` | Owner inserted by safe structural fixes, default `unset` |
