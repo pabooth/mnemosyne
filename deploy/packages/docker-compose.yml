@@ -16,6 +16,20 @@ services:
       - core
     restart: unless-stopped
 
+  curator:
+    image: ghcr.io/pabooth/mnemo-curator:${MNEMO_VERSION:-latest}
+    profiles: ["curator"]
+    env_file:
+      - /etc/mnemosyne/mnemosyne.env
+    environment:
+      MNEMO_CORE_URL: http://core:7777
+      CURATOR_ISSUE_DB_PATH: /data/mnemo-curator-issues.db
+    volumes:
+      - mnemo-curator-data:/data
+    depends_on:
+      - core
+    command: ["mnemo-curator", "scan"]
+
   proxy:
     image: nginxinc/nginx-unprivileged:stable-alpine
     depends_on:
@@ -29,3 +43,4 @@ services:
 
 volumes:
   mnemo-data:
+  mnemo-curator-data:

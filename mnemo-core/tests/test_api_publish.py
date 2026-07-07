@@ -15,7 +15,7 @@ def test_publish_uses_reviewed_document_without_llm(configured_settings: Setting
 
     with TestClient(app) as client:
         response = client.post(
-            "/api/publish",
+            "/api/v1/publish",
             json=processed_doc(title="Human reviewed title").model_dump(),
             headers={"Authorization": "Bearer test-secret"},
         )
@@ -32,7 +32,7 @@ def test_publish_rejects_invalid_type(configured_settings: Settings):
     payload["type"] = "invalid"
     with TestClient(app) as client:
         response = client.post(
-            "/api/publish",
+            "/api/v1/publish",
             json=payload,
             headers={"Authorization": "Bearer test-secret"},
         )

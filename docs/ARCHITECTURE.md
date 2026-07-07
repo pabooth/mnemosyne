@@ -47,6 +47,11 @@ flowchart TB
         GIT["Git Repository"]
     end
 
+    subgraph CURATOR["mnemo-curator (optional)"]
+        INSPECTOR["Inspector\nstructural and semantic findings"]
+        RESOLVER["Resolver\nsafe fixes and semantic rewrites"]
+    end
+
     subgraph KB["KB Layer (pluggable)"]
         KB_NODE["KB Provider"]
     end
@@ -88,6 +93,10 @@ flowchart TB
 
     GIT --> KB_NODE
 
+    GIT --> INSPECTOR
+    INSPECTOR --> RESOLVER
+    RESOLVER -->|normal ingest API| REST
+
     METRICS -->|OTLP| OTEL
     OTEL --> PROM
     PROM --> GRAFANA
@@ -101,14 +110,24 @@ flowchart TB
 
 The core ingestion engine. Exposes two intake interfaces — a REST API and an MCP server — both of which feed the same processing pipeline. Can be deployed and operated independently of the web UI.
 
-The REST API supports synchronous and durable asynchronous workflow shapes:
+The REST API is versioned by URI path (ADR-013). Each version is a
+self-contained router package (`mnemo_core/api/v1/`) mounted under its own
+prefix; once superseded, a version is frozen except for bug fixes. `/health`
+and `/ready` stay unversioned at the app root so infrastructure probes are
+not tied to a content API version.
 
-- `POST /api/process` accepts a raw document and returns a processed preview. It does not write to GitHub and does not raise a pull request.
-- `POST /api/ingest` accepts a raw document, processes it, commits the processed output to a branch, and raises a pull request for human review.
-- `POST /api/publish` accepts an edited `ProcessedDocument` and publishes that exact reviewed output without another LLM call.
-- `POST /api/jobs` and `/api/jobs/batch` create durable jobs whose status and results are stored in SQLite.
+The v1 API supports synchronous and durable asynchronous workflow shapes:
 
-Publishing remains a governed capability of `mnemo-core`. `/api/publish`
+- `POST /api/v1/process` accepts a raw document and returns a processed preview. It does not write to GitHub and does not raise a pull request.
+- `POST /api/v1/ingest` accepts a raw document, processes it, commits the processed output to a branch, and raises a pull request for human review.
+- `POST /api/v1/publish` accepts an edited `ProcessedDocument` and publishes that exact reviewed output without another LLM call.
+- `POST /api/v1/jobs` and `/api/v1/jobs/batch` create durable jobs whose status and results are stored in SQLite; `GET /api/v1/jobs`, `GET /api/v1/jobs/{job_id}`, and `DELETE /api/v1/jobs/{job_id}` expose listing, result lookup, and cancellation.
+- `GET /api/v1/audit` exposes the admin-only durable job audit trail.
+- `POST /api/v1/sources/file`, `POST /api/v1/sources/url`, and `POST /api/v1/sources/github` create durable jobs from uploaded files, allow-listed URLs, or files in the configured GitHub repository.
+- `POST /api/v1/webhooks/github` accepts signed GitHub push webhooks and queues ingest jobs for changed Markdown files on the watched branch.
+- `POST /api/v1/index/trigger` and `POST /api/v1/index/reconcile` are contract stubs (ADR-013) for the indexer: they queue durable jobs that fail immediately until indexing logic is implemented.
+
+Publishing remains a governed capability of `mnemo-core`. `/api/v1/publish`
 exists so a human-edited preview can be committed exactly as reviewed; it
 still creates only a feature branch and pull request.
 
@@ -118,6 +137,25 @@ An optional framework-free static web frontend for document submission,
 preview editing, job history, and pipeline status. It communicates with
 mnemo-core through the REST API. In production, both are fronted by a reverse
 proxy.
+
+### mnemo-curator
+
+An optional knowledge-base curation service. It contains two internal
+components:
+
+- Inspector scans Git-backed Markdown content for structural findings such as
+  missing owners, stale review dates, invalid review dates, duplicate titles,
+  and broken relative links, plus semantic quality gaps such as placeholders
+  or empty sections.
+- Resolver records each finding through the configured issue tracker
+  (GitHub, Jira, or SQLite), applies safe structural fixes deterministically,
+  optionally uses an OpenAI-compatible model for semantic rewrites, and
+  submits corrected content back through `mnemo-core`'s normal
+  `/api/v1/ingest` route.
+
+`mnemo-curator` is a separate deployable from `mnemo-core`. It does not bypass
+the governed publishing path; all fixes still become pull requests through
+core.
 
 ### Ingestion Pipeline
 
@@ -164,7 +202,7 @@ sits in front of both mnemo-ui and mnemo-core, routing `/` to the UI and
 `/api/` and `/mcp/` to core. A reference Nginx configuration is provided in
 `/deploy/reverse-proxy/`.
 
-`mnemo-core` is intended to be private rather than directly exposed to the internet. Even so, REST and MCP intake endpoints should require a simple authentication layer so accidental exposure, misrouting, or lateral access does not grant unauthenticated access to LLM processing or PR creation.
+`mnemo-core` is intended to be private rather than directly exposed to the internet. Even so, REST and MCP intake endpoints should require a simple authentication layer so accidental exposure, misrouting, or lateral access does not grant unauthenticated access to LLM processing or PR creation. Bearer-token REST routes use `Authorization: Bearer <token>`; the GitHub webhook route uses `X-Hub-Signature-256` instead.
 
 ### Observability
 
@@ -208,6 +246,7 @@ A `docker-compose.yml` in the root provides a local development environment. Pro
 /
 ├── mnemo-core/        # REST API, MCP server, ingestion pipeline
 ├── mnemo-ui/          # Framework-free static web frontend
+├── mnemo-curator/     # Optional KB inspection and resolution service
 ├── deploy/
 │   ├── reverse-proxy/ # Stub configs: Caddy, nginx, Traefik
 │   └── observability/ # Prometheus + Grafana stack

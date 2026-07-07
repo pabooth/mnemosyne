@@ -16,7 +16,7 @@ def test_ingest_runs_full_pipeline(configured_settings: Settings):
 
     with TestClient(app) as client:
         response = client.post(
-            "/api/ingest",
+            "/api/v1/ingest",
             json={"content": "Deploy instructions here."},
             headers={"Authorization": "Bearer test-secret"},
         )

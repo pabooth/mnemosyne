@@ -29,14 +29,14 @@ def test_health_unauthenticated(client):
 
 def test_process_requires_auth(client):
     test_client, _ = client
-    response = test_client.post("/api/process", json={"content": "hello"})
+    response = test_client.post("/api/v1/process", json={"content": "hello"})
     assert response.status_code == 401
 
 
 def test_process_returns_processed_document(client):
     test_client, publisher = client
     response = test_client.post(
-        "/api/process",
+        "/api/v1/process",
         json={"content": "Deploy instructions here."},
         headers={"Authorization": "Bearer test-secret"},
     )
@@ -55,7 +55,7 @@ def test_process_pipeline_error_returns_502(configured_settings: Settings):
 
     with TestClient(app) as test_client:
         response = test_client.post(
-            "/api/process",
+            "/api/v1/process",
             json={"content": "hello"},
             headers={"Authorization": "Bearer test-secret"},
         )
@@ -73,7 +73,7 @@ def test_process_unexpected_error_returns_generic_500(configured_settings: Setti
 
     with TestClient(app) as test_client:
         response = test_client.post(
-            "/api/process",
+            "/api/v1/process",
             json={"content": "hello"},
             headers={"Authorization": "Bearer test-secret"},
         )
@@ -86,7 +86,7 @@ def test_process_returns_503_when_auth_not_configured():
     app = create_app(Settings(mnemo_api_token=""))
     with TestClient(app) as test_client:
         response = test_client.post(
-            "/api/process",
+            "/api/v1/process",
             json={"content": "hello"},
             headers={"Authorization": "Bearer anything"},
         )

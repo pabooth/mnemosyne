@@ -51,8 +51,6 @@ class Settings(BaseSettings):
     github_webhook_branch: str = "main"
     github_webhook_path_prefix: str = ""
     github_webhook_max_files: int = 20
-    audit_stale_after_days: int = 180
-    audit_max_files: int = 500
     source_url_allowed_hosts: str = ""
 
     # Observability — empty string disables OTel

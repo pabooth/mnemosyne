@@ -107,3 +107,29 @@ Grafana and Prometheus are bound to `127.0.0.1`. The OpenTelemetry collector
 is available only on the internal Compose network. To expose any observability
 service remotely, place it behind an authenticated TLS reverse proxy rather
 than changing its host binding directly.
+
+## Curator
+
+`mnemo-curator` is optional. It scans Git-backed Markdown content, records
+findings through the configured issue tracker, and can submit safe fixes
+through `mnemo-core`.
+
+Run a one-off scan:
+
+```bash
+docker compose --profile curator run --rm curator
+```
+
+To attempt inline fixes after issue creation:
+
+```bash
+docker compose --profile curator run --rm curator mnemo-curator scan --resolve
+```
+
+Semantic rewrites require `CURATOR_SEMANTIC_RESOLUTION_ENABLED=true` and an
+approved OpenAI-compatible provider configured with `OPENAI_API_KEY`,
+`OPENAI_BASE_URL`, and `OPENAI_MODEL`.
+
+Set `CURATOR_ISSUE_TRACKER` to `github`, `jira`, or `sqlite`. The SQLite
+fallback stores findings in the `mnemo-curator-data` volume at
+`/data/mnemo-curator-issues.db`.

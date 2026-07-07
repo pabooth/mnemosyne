@@ -82,7 +82,7 @@ async function runPipeline(store, resultType) {
   try {
     let result;
     if (reviewedDocument && !state.useMock) {
-      const publish = await postJson(state, '/api/publish', reviewedDocument);
+      const publish = await postJson(state, '/api/v1/publish', reviewedDocument);
       result = { document: reviewedDocument, publish };
     } else if (state.useMock) {
       await delay(ingest ? 900 : 700);
@@ -90,7 +90,7 @@ async function runPipeline(store, resultType) {
         ? { document: reviewedDocument, publish: mockIngest(state).publish }
         : ingest ? mockIngest(state) : mockPreview(state);
     } else {
-      result = await postJson(state, ingest ? '/api/ingest' : '/api/process', buildPayload(state));
+      result = await postJson(state, ingest ? '/api/v1/ingest' : '/api/v1/process', buildPayload(state));
     }
 
     await finishSteps(store, stepCount);
@@ -109,7 +109,7 @@ function setInput(store, key, value) {
 async function loadHistory(store) {
   store.setState({ showHistory: true, historyError: null });
   try {
-    const history = await getJson(store.getState(), '/api/jobs?limit=50');
+    const history = await getJson(store.getState(), '/api/v1/jobs?limit=50');
     store.setState({ history });
   } catch (error) {
     store.setState({ historyError: error.message });

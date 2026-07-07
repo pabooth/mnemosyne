@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+- URI-path API versioning per ADR-013: all content endpoints now live under
+  `/api/v1`, served from the self-contained `mnemo_core/api/v1` router
+  package. `/health` and `/ready` remain unversioned.
+- Contract-stub indexer endpoints `POST /api/v1/index/trigger` and
+  `POST /api/v1/index/reconcile`; both queue durable jobs that fail
+  immediately until indexing logic is implemented.
+- `mnemo-curator`, an optional knowledge-base inspection and resolution
+  service with internal Inspector and Resolver components. It records findings
+  through GitHub, Jira, or SQLite issue trackers, applies safe structural
+  fixes, optionally performs OpenAI-compatible semantic rewrites, and submits fixes through
+  `mnemo-core`'s `/api/v1/ingest` path.
+
+### Changed
+
+- Durable jobs accept any Pydantic payload and support the new
+  `index_trigger`/`index_reconcile` job kinds; `NotImplementedError` marks a
+  job failed immediately instead of retrying.
+
+### Removed
+
+- Knowledge-base self-audit (`mnemo_core/self_audit.py`,
+  `POST /api/audit/knowledge-base`, and the `AUDIT_STALE_AFTER_DAYS` /
+  `AUDIT_MAX_FILES` settings). Inspection and resolution now live in
+  `mnemo-curator` per ADR-012. The job audit trail (`GET /api/v1/audit`)
+  remains.
+
 ## [1.1.0] - 2026-06-21
 Security and project artifact improvements
 Documentation fixes

@@ -35,8 +35,8 @@ def test_rate_limit_is_enforced(tmp_path):
     headers = {"Authorization": "Bearer test-secret"}
 
     with TestClient(app) as client:
-        first = client.post("/api/process", json={"content": "hello"}, headers=headers)
-        second = client.post("/api/process", json={"content": "hello"}, headers=headers)
+        first = client.post("/api/v1/process", json={"content": "hello"}, headers=headers)
+        second = client.post("/api/v1/process", json={"content": "hello"}, headers=headers)
 
     assert first.status_code == 200
     assert second.status_code == 429

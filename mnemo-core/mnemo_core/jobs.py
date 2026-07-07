@@ -6,10 +6,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
+from pydantic import BaseModel
+
 from .models import DocumentInput
 from .pipeline.runner import PipelineRunner
 
-JobKind = Literal["process", "ingest"]
+JobKind = Literal["process", "ingest", "index_trigger", "index_reconcile"]
 
 
 def _now() -> str:
@@ -64,7 +66,7 @@ class JobStore:
                 (_now(),),
             )
 
-    def create_job(self, kind: JobKind, actor: str, document: DocumentInput) -> dict[str, Any]:
+    def create_job(self, kind: JobKind, actor: str, payload: BaseModel) -> dict[str, Any]:
         job_id = str(uuid.uuid4())
         timestamp = _now()
         with self._connect() as db:
@@ -72,7 +74,7 @@ class JobStore:
                 "INSERT INTO jobs "
                 "(id, kind, status, actor, created_at, updated_at, input_json, result_json, error, attempts) "
                 "VALUES (?, ?, 'queued', ?, ?, ?, ?, NULL, NULL, 0)",
-                (job_id, kind, actor, timestamp, timestamp, document.model_dump_json()),
+                (job_id, kind, actor, timestamp, timestamp, payload.model_dump_json()),
             )
         return self.get_job(job_id)
 
@@ -191,11 +193,11 @@ class JobManager:
         self,
         kind: JobKind,
         actor: str,
-        document: DocumentInput,
-        runner: PipelineRunner,
+        payload: BaseModel,
+        runner: PipelineRunner | None = None,
     ) -> dict[str, Any]:
-        job = self.store.create_job(kind, actor, document)
-        task = asyncio.create_task(self._run(job["id"], kind, document, runner))
+        job = self.store.create_job(kind, actor, payload)
+        task = asyncio.create_task(self._run(job["id"], kind, payload, runner))
         self._tasks[job["id"]] = task
         task.add_done_callback(lambda _: self._tasks.pop(job["id"], None))
         return job
@@ -204,16 +206,13 @@ class JobManager:
         self,
         job_id: str,
         kind: JobKind,
-        document: DocumentInput,
-        runner: PipelineRunner,
+        payload: BaseModel,
+        runner: PipelineRunner | None,
     ) -> None:
         for attempt in range(1, self.max_attempts + 1):
             self.store.update_job(job_id, "running", attempts=attempt)
             try:
-                if kind == "process":
-                    result = await runner.process(document)
-                else:
-                    result = await runner.run(document)
+                result = await self._execute(kind, payload, runner)
                 self.store.update_job(
                     job_id,
                     "succeeded",
@@ -224,6 +223,15 @@ class JobManager:
             except asyncio.CancelledError:
                 self.store.update_job(job_id, "cancelled", error="Cancelled", attempts=attempt)
                 raise
+            except NotImplementedError as error:
+                # Contract stubs (ADR-013): not a transient failure, so never retry.
+                self.store.update_job(
+                    job_id,
+                    "failed",
+                    error=str(error)[:2_000],
+                    attempts=attempt,
+                )
+                return
             except Exception as error:
                 if attempt >= self.max_attempts:
                     self.store.update_job(
@@ -240,6 +248,22 @@ class JobManager:
                     attempts=attempt,
                 )
                 await asyncio.sleep(self.retry_base_seconds * (2 ** (attempt - 1)))
+
+    async def _execute(
+        self,
+        kind: JobKind,
+        payload: BaseModel,
+        runner: PipelineRunner | None,
+    ) -> BaseModel:
+        if kind in ("index_trigger", "index_reconcile"):
+            raise NotImplementedError(f"Job kind '{kind}' is a contract stub with no implementation yet")
+        if runner is None:
+            raise NotImplementedError(f"Job kind '{kind}' requires a pipeline runner")
+        if not isinstance(payload, DocumentInput):
+            raise NotImplementedError(f"Job kind '{kind}' requires a DocumentInput payload")
+        if kind == "process":
+            return await runner.process(payload)
+        return await runner.run(payload)
 
     def cancel(self, job_id: str) -> bool:
         task = self._tasks.get(job_id)
