@@ -81,7 +81,7 @@ services:
       JIRA_ISSUE_TYPE: ${JIRA_ISSUE_TYPE:-Task}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_MODEL: ${CURATOR_OPENAI_MODEL:-gpt-4o-mini}
     command: ["mnemo-curator", "scan"]
     volumes:
       - mnemo-curator-data:/data
