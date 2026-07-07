@@ -23,9 +23,15 @@ class GitHubClient:
                 params={"recursive": "1"},
             )
             tree_response.raise_for_status()
+            tree_data = tree_response.json()
+            if tree_data.get("truncated"):
+                raise RuntimeError(
+                    f"GitHub tree for {self.settings.github_repo}@{branch} was truncated; "
+                    "repository is too large for a single recursive listing"
+                )
             paths = [
                 item["path"]
-                for item in tree_response.json().get("tree", [])
+                for item in tree_data.get("tree", [])
                 if item.get("type") == "blob"
                 and item["path"].lower().endswith((".md", ".markdown"))
                 and self._inside_docs_root(item["path"])

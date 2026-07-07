@@ -95,17 +95,15 @@ async def test_list_documents_skips_contents_without_base64_encoding():
     assert [doc.path for doc in documents] == ["docs/a.md"]
 
 
-async def test_list_documents_ignores_truncated_tree_flag():
+async def test_list_documents_fails_fast_on_truncated_tree():
     settings = Settings(github_token="token", github_repo="owner/repo")
     tree_items = [{"path": "docs/a.md", "type": "blob"}]
 
     with respx.mock:
         _mock_repo_and_tree(tree_items, truncated=True)
-        _mock_contents("docs/a.md", content="A body")
 
-        documents = await GitHubClient(settings).list_documents()
-
-    assert [doc.path for doc in documents] == ["docs/a.md"]
+        with pytest.raises(RuntimeError, match="truncated"):
+            await GitHubClient(settings).list_documents()
 
 
 async def test_list_documents_requires_token_and_repo():
