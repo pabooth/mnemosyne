@@ -17,11 +17,11 @@ def _mock_repo_and_tree(tree_items, truncated=False):
     )
 
 
-def _mock_contents(path, *, encoding="base64", content=""):
+def _mock_blob(sha, *, encoding="base64", content=""):
     body = {"encoding": encoding}
     if encoding == "base64":
         body["content"] = base64.b64encode(content.encode("utf-8")).decode("ascii")
-    respx.get(f"https://api.github.com/repos/owner/repo/contents/{path}").mock(
+    respx.get(f"https://api.github.com/repos/owner/repo/git/blobs/{sha}").mock(
         return_value=Response(200, json=body)
     )
 
@@ -29,16 +29,16 @@ def _mock_contents(path, *, encoding="base64", content=""):
 async def test_list_documents_returns_matching_markdown_documents():
     settings = Settings(github_token="token", github_repo="owner/repo")
     tree_items = [
-        {"path": "docs/a.md", "type": "blob"},
-        {"path": "docs/b.markdown", "type": "blob"},
-        {"path": "docs/image.png", "type": "blob"},
-        {"path": "docs/subdir", "type": "tree"},
+        {"path": "docs/a.md", "type": "blob", "sha": "sha-a"},
+        {"path": "docs/b.markdown", "type": "blob", "sha": "sha-b"},
+        {"path": "docs/image.png", "type": "blob", "sha": "sha-img"},
+        {"path": "docs/subdir", "type": "tree", "sha": "sha-dir"},
     ]
 
     with respx.mock:
         _mock_repo_and_tree(tree_items)
-        _mock_contents("docs/a.md", content="A body")
-        _mock_contents("docs/b.markdown", content="B body")
+        _mock_blob("sha-a", content="A body")
+        _mock_blob("sha-b", content="B body")
 
         documents = await GitHubClient(settings).list_documents()
 
@@ -49,13 +49,13 @@ async def test_list_documents_returns_matching_markdown_documents():
 async def test_list_documents_excludes_paths_outside_docs_root():
     settings = Settings(github_token="token", github_repo="owner/repo", docs_root="docs")
     tree_items = [
-        {"path": "docs/a.md", "type": "blob"},
-        {"path": "other/b.md", "type": "blob"},
+        {"path": "docs/a.md", "type": "blob", "sha": "sha-a"},
+        {"path": "other/b.md", "type": "blob", "sha": "sha-b"},
     ]
 
     with respx.mock:
         _mock_repo_and_tree(tree_items)
-        _mock_contents("docs/a.md", content="A body")
+        _mock_blob("sha-a", content="A body")
 
         documents = await GitHubClient(settings).list_documents()
 
@@ -65,34 +65,29 @@ async def test_list_documents_excludes_paths_outside_docs_root():
 async def test_list_documents_respects_curator_max_files():
     settings = Settings(github_token="token", github_repo="owner/repo", curator_max_files=1)
     tree_items = [
-        {"path": "docs/a.md", "type": "blob"},
-        {"path": "docs/b.md", "type": "blob"},
+        {"path": "docs/a.md", "type": "blob", "sha": "sha-a"},
+        {"path": "docs/b.md", "type": "blob", "sha": "sha-b"},
     ]
 
     with respx.mock:
         _mock_repo_and_tree(tree_items)
-        _mock_contents("docs/a.md", content="A body")
+        _mock_blob("sha-a", content="A body")
 
         documents = await GitHubClient(settings).list_documents()
 
     assert [doc.path for doc in documents] == ["docs/a.md"]
 
 
-async def test_list_documents_skips_contents_without_base64_encoding():
+async def test_list_documents_raises_on_unexpected_blob_encoding():
     settings = Settings(github_token="token", github_repo="owner/repo")
-    tree_items = [
-        {"path": "docs/a.md", "type": "blob"},
-        {"path": "docs/huge.md", "type": "blob"},
-    ]
+    tree_items = [{"path": "docs/huge.md", "type": "blob", "sha": "sha-huge"}]
 
     with respx.mock:
         _mock_repo_and_tree(tree_items)
-        _mock_contents("docs/a.md", content="A body")
-        _mock_contents("docs/huge.md", encoding="none")
+        _mock_blob("sha-huge", encoding="none")
 
-        documents = await GitHubClient(settings).list_documents()
-
-    assert [doc.path for doc in documents] == ["docs/a.md"]
+        with pytest.raises(RuntimeError, match="encoding"):
+            await GitHubClient(settings).list_documents()
 
 
 async def test_list_documents_fails_fast_on_truncated_tree():

@@ -29,8 +29,8 @@ class GitHubClient:
                     f"GitHub tree for {self.settings.github_repo}@{branch} was truncated; "
                     "repository is too large for a single recursive listing"
                 )
-            paths = [
-                item["path"]
+            blobs = [
+                (item["path"], item["sha"])
                 for item in tree_data.get("tree", [])
                 if item.get("type") == "blob"
                 and item["path"].lower().endswith((".md", ".markdown"))
@@ -38,20 +38,22 @@ class GitHubClient:
             ][: self.settings.curator_max_files]
 
             documents: list[Document] = []
-            for path in paths:
-                response = await client.get(
-                    f"/repos/{self.settings.github_repo}/contents/{path}",
-                    params={"ref": branch},
-                )
+            for path, sha in blobs:
+                # The Git Blob API (unlike Contents) always returns base64 for
+                # text/binary blobs up to 100MB, so large docs aren't silently skipped.
+                response = await client.get(f"/repos/{self.settings.github_repo}/git/blobs/{sha}")
                 response.raise_for_status()
                 data = response.json()
-                if data.get("encoding") == "base64":
-                    documents.append(
-                        Document(
-                            path=path,
-                            content=base64.b64decode(data["content"]).decode("utf-8", errors="replace"),
-                        )
+                if data.get("encoding") != "base64":
+                    raise RuntimeError(
+                        f"Unexpected encoding {data.get('encoding')!r} for blob {path} ({sha})"
                     )
+                documents.append(
+                    Document(
+                        path=path,
+                        content=base64.b64decode(data["content"]).decode("utf-8", errors="replace"),
+                    )
+                )
         return documents
 
     def _inside_docs_root(self, path: str) -> bool:
