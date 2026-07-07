@@ -1,6 +1,6 @@
 # ADR-011: Tiered review model for KB contributions
 
-> **Status:** `Draft`
+> **Status:** `Proposed`
 > **Date:** 2026-06-30
 > **Review date:** 2027-06-30
 
@@ -12,7 +12,7 @@
 |---|---|
 | **ID** | ADR-011 |
 | **Title** | Tiered review model for KB contributions |
-| **Status** | Draft |
+| **Status** | Proposed |
 | **Date** | 2026-06-30 |
 | **Review date** | 2027-06-30 |
 | **Supersedes** | [ADR-005: AI must not contribute to the knowledge base without human review](005-human-review-governance.md) |
