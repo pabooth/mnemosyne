@@ -1,6 +1,6 @@
 # ADR-011: Tiered review model for KB contributions
 
-> **Status:** `Draft`
+> **Status:** `Accepted`
 > **Date:** 2026-06-30
 > **Review date:** 2027-06-30
 
@@ -12,8 +12,8 @@
 |---|---|
 | **ID** | ADR-011 |
 | **Title** | Tiered review model for KB contributions |
-| **Status** | Draft |
-| **Date** | 2026-06-30 |
+| **Status** | Accepted |
+| **Date** | 2026-07-06 |
 | **Review date** | 2027-06-30 |
 | **Supersedes** | [ADR-005: AI must not contribute to the knowledge base without human review](005-human-review-governance.md) |
 | **Superseded by** | — |
@@ -36,7 +36,7 @@ ADR-005 established that AI must not contribute to the knowledge base without hu
 
 This ADR supersedes ADR-005. The blanket human review requirement it established is no longer the correct position as the system matures toward agentic operation.
 
-As Mnemosyne evolves to include self-audit capabilities, lessons-learnt capture, and agent-loop contributions, the volume and variety of proposed KB contributions will increase significantly. Uniform human review at that scale creates a bottleneck that incentivises rubber-stamping — a human approval in name only, which is worse than a well-designed automated gate because it creates the appearance of oversight without its substance.
+As Mnemosyne evolves to include self-curation capabilities, lessons-learnt capture, and agent-loop contributions, the volume and variety of proposed KB contributions will increase significantly. Uniform human review at that scale creates a bottleneck that incentivises rubber-stamping — a human approval in name only, which is worse than a well-designed automated gate because it creates the appearance of oversight without its substance.
 
 At the same time, not all KB contributions carry the same risk. A routine reference document update and a change to the pipeline's governance policy are not equivalent, and treating them identically is an inappropriate conflation. Documents that define how the system governs itself require unconditional human authority; documents that describe what the system knows do not.
 
@@ -131,8 +131,6 @@ The tiered model replaces the letter of ADR-005 while preserving its intent: hum
 
 Dual adversarial review with cross-family model pairing provides genuine independent verification: different training data, different RLHF approaches, and deliberately opposed review prompts (one arguing for acceptance, one hunting for rejection) make it substantially harder for subtly incorrect content to pass both gates than to pass a single reviewer. Model disagreement as an escalation signal is the most valuable output of the adversarial pairing — it surfaces genuine uncertainty reliably.
 
-Dual adversarial review with cross-family model pairing provides genuine independent verification: different training data, different RLHF approaches, and deliberately opposed review prompts (one arguing for acceptance, one hunting for rejection) make it substantially harder for subtly incorrect content to pass both gates than to pass a single reviewer. Model disagreement as an escalation signal is the most valuable output of the adversarial pairing — it surfaces genuine uncertainty reliably.
-
 The constitutional protection for Tier 2 content is not merely a quality gate — it is an architectural safeguard. Documents that define how the system governs itself are different in kind from documents that describe what the system knows. Allowing automated review to be the final authority over governance documents would permit the review model itself to erode the governance constraints it operates under. This must not be possible, and the constraint must be self-referential: the document that defines Tier 2 membership is itself a Tier 2 document.
 
 The governance gap identification path acknowledges a fundamental epistemic limitation: humans cannot govern scenarios they are unaware of. An agent operating at scale will encounter novel situations before any human does. Capturing those observations and surfacing them as proposed governance changes — subject to mandatory human ratification — extends the governance model's reach without surrendering human authority over its content.
@@ -172,7 +170,7 @@ Negative / trade-offs:
 ## Related
 
 - [ADR-004: Pluggable LLM layer](004-llm-abstraction.md)
-- [ADR-005: AI must not contribute to the knowledge base without human review](005-human-review-governance.md) *(superseded by this ADR)*
+- [ADR-005: AI must not contribute to the knowledge base without human review](005-human-review-governance.md) *(will be superseded when this ADR is accepted)*
 - [ADR-006: MCP as intake interface only](006-mcp-intake-only.md)
 
 ---

@@ -1,6 +1,6 @@
 # ADR-005: AI must not contribute to the knowledge base without human review
 
-> **Status:** `Accepted`
+> **Status:** `Superseded`
 > **Date:** 2026-06-08
 > **Review date:** 2027-06-08
 
@@ -12,11 +12,11 @@
 |---|---|
 | **ID** | ADR-005 |
 | **Title** | AI must not contribute to the knowledge base without human review |
-| **Status** | Accepted |
-| **Date** | 2026-06-08 |
-| **Review date** | 2027-06-08 |
+| **Status** | Superseded |
+| **Date** | 2026-07-06 |
+| **Review date** | - |
 | **Supersedes** | — |
-| **Superseded by** | — |
+| **Superseded by** | ADR-011 |
 
 ---
 
@@ -127,6 +127,7 @@ Negative / trade-offs:
 - [ADR-003: Use Diataxis as the content classification taxonomy](003-diataxis-classification.md)
 - [ADR-004: Pluggable LLM layer](004-llm-abstraction.md)
 - [ADR-006: MCP as intake interface only](006-mcp-intake-only.md)
+- [ADR-011: Tiered review model for KB contributions](011-tiered-review-model.md) *(proposed successor — will supersede this ADR when accepted)*
 
 ---
 
