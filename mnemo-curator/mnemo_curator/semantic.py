@@ -2,8 +2,12 @@ import json
 
 import httpx
 
+from .frontmatter import FRONTMATTER_RE
 from .models import Finding
 from .settings import Settings
+
+MAX_REWRITE_SIZE_MULTIPLIER = 3
+MIN_REWRITE_MAX_SIZE = 50_000
 
 
 class SemanticResolver:
@@ -43,4 +47,18 @@ class SemanticResolver:
             )
             response.raise_for_status()
         data = response.json()
-        return str(data["choices"][0]["message"]["content"]).strip()
+        rewritten = str(data["choices"][0]["message"]["content"]).strip()
+        return self._validate(content, rewritten)
+
+    def _validate(self, original: str, rewritten: str) -> str:
+        if not rewritten:
+            raise RuntimeError("Semantic rewrite returned empty content")
+
+        max_size = max(len(original) * MAX_REWRITE_SIZE_MULTIPLIER, MIN_REWRITE_MAX_SIZE)
+        if len(rewritten) > max_size:
+            raise RuntimeError(f"Semantic rewrite exceeded maximum size of {max_size} characters")
+
+        if FRONTMATTER_RE.search(original) and not FRONTMATTER_RE.search(rewritten):
+            raise RuntimeError("Semantic rewrite dropped the document's frontmatter")
+
+        return rewritten
