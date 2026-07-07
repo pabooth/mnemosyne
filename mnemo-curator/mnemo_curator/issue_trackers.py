@@ -93,39 +93,47 @@ class SQLiteIssueTracker:
         self._initialize()
 
     async def record(self, finding: Finding) -> str:
-        with sqlite3.connect(self.path) as db:
-            cursor = db.execute(
-                "INSERT INTO curator_issues "
-                "(kind, severity, path, title, detail, metadata_json, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, datetime('now'))",
-                (
-                    finding.kind,
-                    finding.severity,
-                    finding.path,
-                    finding.title,
-                    finding.detail,
-                    json.dumps(finding.metadata, sort_keys=True),
-                ),
-            )
-            issue_id = cursor.lastrowid
+        db = sqlite3.connect(self.path)
+        try:
+            with db:
+                cursor = db.execute(
+                    "INSERT INTO curator_issues "
+                    "(kind, severity, path, title, detail, metadata_json, created_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, datetime('now'))",
+                    (
+                        finding.kind,
+                        finding.severity,
+                        finding.path,
+                        finding.title,
+                        finding.detail,
+                        json.dumps(finding.metadata, sort_keys=True),
+                    ),
+                )
+                issue_id = cursor.lastrowid
+        finally:
+            db.close()
         return f"sqlite://{self.path}#curator_issues/{issue_id}"
 
     def _initialize(self) -> None:
-        with sqlite3.connect(self.path) as db:
-            db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS curator_issues (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    kind TEXT NOT NULL,
-                    severity TEXT NOT NULL,
-                    path TEXT NOT NULL,
-                    title TEXT NOT NULL,
-                    detail TEXT NOT NULL,
-                    metadata_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL
+        db = sqlite3.connect(self.path)
+        try:
+            with db:
+                db.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS curator_issues (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        kind TEXT NOT NULL,
+                        severity TEXT NOT NULL,
+                        path TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        detail TEXT NOT NULL,
+                        metadata_json TEXT NOT NULL,
+                        created_at TEXT NOT NULL
+                    )
+                    """
                 )
-                """
-            )
+        finally:
+            db.close()
 
 
 def issue_title(finding: Finding) -> str:
