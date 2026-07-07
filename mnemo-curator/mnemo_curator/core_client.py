@@ -25,4 +25,4 @@ class MnemoCoreClient:
             response = await client.post("/api/v1/ingest", json=payload)
             response.raise_for_status()
         data = response.json()
-        return str(data.get("id") or data.get("publish", {}).get("pr_url") or "")
+        return str(data.get("publish", {}).get("pr_url") or "")
