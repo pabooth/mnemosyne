@@ -91,7 +91,7 @@ class Inspector:
                 )
 
         for target in LINK_RE.findall(document.content):
-            resolved = posixpath.normpath(str(PurePosixPath(document.path).parent.joinpath(target)))
+            resolved = self._resolve_link_target(document.path, target)
             if resolved not in known_paths:
                 findings.append(
                     Finding(
@@ -104,6 +104,13 @@ class Inspector:
                 )
 
         return findings
+
+    def _resolve_link_target(self, document_path: str, target: str) -> str:
+        if target.startswith("/"):
+            root = self.settings.docs_root.strip("/")
+            base = f"{root}/{target.lstrip('/')}" if root else target.lstrip("/")
+            return posixpath.normpath(base)
+        return posixpath.normpath(str(PurePosixPath(document_path).parent.joinpath(target)))
 
     def _semantic_findings(self, document: Document) -> list[Finding]:
         findings: list[Finding] = []

@@ -25,6 +25,53 @@ def test_inspector_detects_structural_findings():
     assert "duplicate-title" in kinds
 
 
+def test_inspector_resolves_root_relative_links_without_docs_root():
+    documents = [
+        Document(
+            path="docs/a.md",
+            content="---\ntitle: A\nowner: team\nlast_reviewed: 2026-01-01\n---\n\nSee [other](/docs/b.md).",
+        ),
+        Document(
+            path="docs/b.md",
+            content="---\ntitle: B\nowner: team\nlast_reviewed: 2026-01-01\n---\n\nBody",
+        ),
+    ]
+
+    findings = Inspector(Settings()).inspect(documents)
+
+    assert "broken-relative-link" not in [finding.kind for finding in findings]
+
+
+def test_inspector_resolves_root_relative_links_against_docs_root():
+    documents = [
+        Document(
+            path="docs/a.md",
+            content="---\ntitle: A\nowner: team\nlast_reviewed: 2026-01-01\n---\n\nSee [other](/b.md).",
+        ),
+        Document(
+            path="docs/b.md",
+            content="---\ntitle: B\nowner: team\nlast_reviewed: 2026-01-01\n---\n\nBody",
+        ),
+    ]
+
+    findings = Inspector(Settings(docs_root="docs")).inspect(documents)
+
+    assert "broken-relative-link" not in [finding.kind for finding in findings]
+
+
+def test_inspector_flags_root_relative_link_to_missing_file():
+    documents = [
+        Document(
+            path="docs/a.md",
+            content="---\ntitle: A\nowner: team\nlast_reviewed: 2026-01-01\n---\n\nSee [other](/docs/missing.md).",
+        ),
+    ]
+
+    findings = Inspector(Settings()).inspect(documents)
+
+    assert "broken-relative-link" in [finding.kind for finding in findings]
+
+
 def test_inspector_detects_semantic_placeholders():
     documents = [
         Document(
