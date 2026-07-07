@@ -1,8 +1,34 @@
 # ADR-012: Container-level decomposition of Mnemosyne
 
-## Status
+> **Status:** `Accepted`
+> **Date:** 2026-07-06
+> **Review date:** 2027-07-06
 
-Draft
+---
+
+## Identity
+
+| Field | Value |
+|---|---|
+| **ID** | ADR-012 |
+| **Title** | Container-level decomposition of Mnemosyne |
+| **Status** | Accepted |
+| **Date** | 2026-07-06 |
+| **Review date** | 2027-07-06 |
+| **Supersedes** | — |
+| **Superseded by** | — |
+
+---
+
+## Ownership
+
+| Field | Value |
+|---|---|
+| **Author / Decision Owner** | Paul Booth |
+| **Contributors** | — |
+| **Consulted** | — |
+
+---
 
 ## Context
 
@@ -15,6 +41,38 @@ The original system design existed as a single mermaid/draw.io mind-map, grown o
 Conflating these three axes is what made the diagram's colour scheme feel inconsistent under inspection: colours intended to mark deployment/ownership (e.g. red for "core logic") were sometimes applied based on control-flow or actor reasoning instead, and several nodes (`Self-Audit`, `Indexer`, the original `Human`-labelled agentic loop node) had colours that were leftover defaults rather than deliberate choices.
 
 Before starting the next build phase (fleshing out `mnemo-core`, and building `mnemo-curator` and `mnemo-bot`), we need a diagram and a decision record that answers one question cleanly: **what actually has to be built and run as its own deployable, and what's the cost of skipping each optional one.** That is a container-level (C4) question, distinct from both the control-flow pipeline (already covered by ADR-011) and the intake-surface diagram (already covered by ADR-006).
+
+---
+
+## Considered Options
+
+### Option 1: Keep the single mind-map diagram
+
+Continue evolving the organically-grown mermaid/draw.io mind-map as the system design artefact.
+
+**Pros:**
+- No rework; the diagram already exists and captured the ingestion design well
+- One artefact to maintain
+
+**Cons:**
+- Conflates control flow, actor/trust boundaries, and deployment/ownership in one set of visual conventions
+- Cannot answer the deployment question — deployables, pipeline steps, and third-party systems all carry the same visual weight
+- Colour semantics had already drifted into inconsistency under inspection
+
+### Option 2: Container-level (C4) decomposition with separate diagrams per axis *(chosen)*
+
+Split the design into a container-level diagram answering only the deployment/ownership question, leaving control flow to ADR-011 and the intake surface to ADR-006.
+
+**Pros:**
+- Each diagram answers one question with one set of visual conventions
+- Produces a deploy checklist: required vs optional deployables and the cost of skipping each
+- Gives component-level diagrams a place to nest without competing for canvas space
+
+**Cons:**
+- More artefacts to keep in sync as the architecture evolves
+- Requires resolving lingering naming and bundling questions (e.g. `Self-Audit`/`Inspector`/`Resolver`) before the diagram is stable
+
+---
 
 ## Decision
 
@@ -66,6 +124,22 @@ Indexing is folded into `mnemo-core` rather than being its own container or a CI
 - **Human** — the general human actor, fanning out into the specific tools/containers listed above.
 - **Agentic access** — the peer to Human at the actor level (originally drawn as `Agentic Loop Generation`, briefly relabelled `External process`). Represents an autonomous agentic loop or automation process that sits entirely outside the system as a consumer of it, submitting content directly to `mnemo-core` over MCP without going through any of the specific client tools. Renamed to "Agentic access" as the final label — precise about both the actor and the access path (MCP), and avoids "process," which read as one axis away from what it actually distinguishes (an actor type, not a runtime detail).
 
+---
+
+## Justification
+
+The mind-map could not answer the question the next build phase depends on — what has to be stood up as its own deployable, and what each optional deployable costs to skip — because it drew deployables, pipeline steps, and third-party systems at the same visual weight. Separating the deployment/ownership axis into its own container-level diagram answers that question directly, resolves the colour-semantics drift by giving each diagram one set of conventions, and settles the open naming and bundling questions (`mnemo-curator`, Inspector/Resolver, indexing ownership) that the mind-map had left ambiguous. The cost — more artefacts to keep in sync — is acceptable because each artefact now has a single, checkable purpose.
+
+---
+
+## Enforcement
+
+- The container diagram is maintained alongside this ADR and updated when deployables are added, removed, or change optionality
+- The `Self-Audit` label is retired everywhere it appears (ADRs, Todoist tasks, docs) in favour of `mnemo-curator`
+- Proposals for new deployables, or for splitting `mnemo-curator` or extracting indexing, should reference and supersede this ADR
+
+---
+
 ## Consequences
 
 **What this gives us:**
@@ -81,7 +155,14 @@ Indexing is folded into `mnemo-core` rather than being its own container or a CI
 - Failure-mode handling for the indexing reconciliation pass (fail loud vs. fail quiet on a bad merge) — open question, not yet decided.
 - Whether `mnemo-curator`'s bundled design should itself be one package with two modes (`--mode=scan`, `--mode=resolve`, `--mode=retry`) versus something more granular — decided as one package for now; revisit if Inspector and Resolver's logic diverges enough to justify a split.
 
-## Related ADRs
+---
 
-- ADR-006 (MCP as intake-only) — the intake surface this container diagram's `Rel` edges (API, MCP, Git, webhook) connect into.
-- ADR-011 (tiered review model) — the control-flow axis this ADR deliberately excludes; unaffected by the container split, and expected to be diagrammed separately as a `mnemo-core` component diagram.
+## Related
+
+- [ADR-006: MCP as intake interface only](006-mcp-intake-only.md) — the intake surface this container diagram's `Rel` edges (API, MCP, Git, webhook) connect into.
+- [ADR-011: Tiered review model for KB contributions](011-tiered-review-model.md) — the control-flow axis this ADR deliberately excludes; unaffected by the container split, and expected to be diagrammed separately as a `mnemo-core` component diagram.
+
+---
+
+*This ADR follows the Mnemosyne Project ADR standard.*
+*Template version: 1.0 — June 2026*
