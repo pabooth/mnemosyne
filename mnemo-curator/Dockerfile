@@ -12,4 +12,7 @@ COPY mnemo_curator/ ./mnemo_curator/
 
 RUN pip install .
 
+RUN useradd --system --no-create-home --shell /usr/sbin/nologin mnemo-curator
+USER mnemo-curator
+
 CMD ["mnemo-curator", "scan"]
