@@ -18,7 +18,10 @@ assert.match(index, /<link rel="stylesheet" href="\.\/src\/styles\.css">/);
 assert.doesNotMatch(index, /__bundler\/manifest/);
 assert.doesNotMatch(index, /__bundler\/template/);
 assert.match(renderer, /escapeHtml/);
-assert.match(renderer, /\/api\/publish/);
+assert.match(renderer, /\/api\/v1\/publish/);
+assert.match(renderer, /\/api\/v1\/ingest/);
+assert.match(renderer, /\/api\/v1\/process/);
+assert.match(renderer, /\/api\/v1\/jobs\?limit=50/);
 assert.doesNotMatch(renderer, /dangerouslysetinnerhtml/i);
 
 for (const path of [
