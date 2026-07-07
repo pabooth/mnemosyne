@@ -10,7 +10,7 @@ from ...models import DocumentInput
 from ...pipeline.runner import PipelineRunner
 from ..deps import get_runner
 
-router = APIRouter(prefix="/api/sources")
+router = APIRouter(prefix="/sources")
 
 
 class UrlSource(BaseModel):

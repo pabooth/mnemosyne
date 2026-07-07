@@ -13,9 +13,11 @@ PR for review.
 The project contains:
 
 - `mnemo-core`: REST API, MCP server, processing pipeline, durable jobs, audit
-  history, GitHub publishing, webhook intake, and knowledge-base self-audit.
+  history, GitHub publishing, and webhook intake.
 - `mnemo-ui`: optional static browser interface for previewing, editing, and
   submitting documents.
+- `mnemo-curator`: optional inspection and resolution service for Git-backed
+  knowledge-base content.
 
 > [!WARNING]
 > Mnemosyne sends document content to the configured LLM provider. Do not use it
@@ -63,6 +65,12 @@ For the optional telemetry stack:
 docker compose --profile observability up --build
 ```
 
+For the optional curator scan:
+
+```console
+docker compose --profile curator run --rm curator
+```
+
 Tagged releases also publish `.deb` and `.rpm` deployment packages. After
 installation, configure `/etc/mnemosyne/mnemosyne.env` and run
 `mnemosyne up -d`.
@@ -71,23 +79,31 @@ installation, configure `/etc/mnemosyne/mnemosyne.env` and run
 mnemosyne --version
 ```
 
-## Intake interfaces
+## API and intake interfaces
 
-| Interface                   | Purpose                                                        |
-|-----------------------------|----------------------------------------------------------------|
-| `POST /api/process`         | Synchronous preview                                            |
-| `POST /api/ingest`          | Synchronous processing and pull request                        |
-| `POST /api/publish`         | Publish an edited, reviewed preview without rerunning the LLM  |
-| `POST /api/jobs`            | Durable asynchronous process or ingest job                     |
-| `POST /api/jobs/batch`      | Batch submission                                               |
-| `POST /api/sources/file`    | Markdown or text upload                                        |
-| `POST /api/sources/url`     | Allow-listed URL intake                                        |
-| `POST /api/sources/github`  | File intake from the configured GitHub repository              |
-| `POST /api/webhooks/github` | Signed GitHub push webhook                                     |
-| `/mcp/sse`                  | MCP intake server                                              |
+| Interface                        | Purpose                                                        |
+|----------------------------------|----------------------------------------------------------------|
+| `POST /api/v1/process`           | Synchronous preview                                            |
+| `POST /api/v1/ingest`            | Synchronous processing and pull request                        |
+| `POST /api/v1/publish`           | Publish an edited, reviewed preview without rerunning the LLM  |
+| `POST /api/v1/jobs`              | Durable asynchronous process or ingest job                     |
+| `POST /api/v1/jobs/batch`        | Batch submission                                               |
+| `GET /api/v1/jobs`               | List durable jobs visible to the caller                        |
+| `GET /api/v1/jobs/{job_id}`      | Read a durable job result                                      |
+| `DELETE /api/v1/jobs/{job_id}`   | Cancel a running durable job                                   |
+| `GET /api/v1/audit`              | Admin-only job audit trail                                     |
+| `POST /api/v1/sources/file`      | Markdown or text upload                                        |
+| `POST /api/v1/sources/url`       | Allow-listed URL intake                                        |
+| `POST /api/v1/sources/github`    | File intake from the configured GitHub repository              |
+| `POST /api/v1/webhooks/github`   | Signed GitHub push webhook                                     |
+| `POST /api/v1/index/trigger`     | On-demand reindex job (contract stub, ADR-013)                 |
+| `POST /api/v1/index/reconcile`   | Repo/Vector-DB reconciliation job (contract stub, ADR-013)     |
+| `/mcp/sse`                       | MCP intake server                                              |
 
-All `/api` intake routes require `Authorization: Bearer <token>`. GitHub
-webhooks use `X-Hub-Signature-256` instead.
+The REST API is versioned by URI path (ADR-013); `/health` and `/ready` are
+the only unversioned routes. Bearer-token routes require
+`Authorization: Bearer <token>`. GitHub webhooks are also under `/api/v1`,
+but authenticate with `X-Hub-Signature-256` instead of the bearer token.
 
 ## Providers
 
@@ -106,12 +122,14 @@ and operational settings are documented in
 
 - Generated content can only be published to a feature branch and pull request.
 - Preview output can be edited and then submitted verbatim through
-  `/api/publish`.
+  `/api/v1/publish`.
 - Inputs and generated outputs are validated and size-limited.
 - Requests have configurable rate, concurrency, and timeout limits.
 - Named API tokens support `submitter` and `admin` roles.
 - Jobs and mutating API operations are recorded in SQLite.
 - URL ingestion is disabled until an explicit hostname allow-list is set.
+- Knowledge-base inspection and resolution runs in `mnemo-curator`; fixes are
+  submitted back through `mnemo-core` and still become pull requests.
 
 Repository branch protection must still require human approval and prevent the
 Mnemosyne service account from merging.
@@ -128,6 +146,11 @@ cd ../mnemo-ui
 npm install
 npm test
 npm run build
+
+cd ../mnemo-curator
+python -m venv .venv
+.venv/bin/pip install -e ".[dev]"
+.venv/bin/pytest -q
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and

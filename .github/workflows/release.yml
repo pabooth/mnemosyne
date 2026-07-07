@@ -40,6 +40,9 @@ jobs:
               "mnemo-core/pyproject.toml": tomllib.loads(
                   Path("mnemo-core/pyproject.toml").read_text()
               )["project"]["version"],
+              "mnemo-curator/pyproject.toml": tomllib.loads(
+                  Path("mnemo-curator/pyproject.toml").read_text()
+              )["project"]["version"],
               "mnemo-ui/package.json": json.loads(
                   Path("mnemo-ui/package.json").read_text()
               )["version"],
@@ -99,13 +102,31 @@ jobs:
           npm test
           npm run build
 
+      - name: Build and test curator
+        working-directory: mnemo-curator
+        run: |
+          pip install build ".[dev]"
+          pytest -q
+          python -m build
+
+      - name: Smoke-test built curator wheel
+        working-directory: mnemo-curator
+        run: |
+          test -n "$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
+          test -n "$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)"
+          python -m venv /tmp/mnemo-curator-release
+          /tmp/mnemo-curator-release/bin/python -m pip install dist/*.whl
+          /tmp/mnemo-curator-release/bin/mnemo-curator --help
+
       - name: Build release archives
         run: |
-          mkdir -p release/mnemo-core release/mnemo-ui release/mnemosyne
+          mkdir -p release/mnemo-core release/mnemo-ui release/mnemo-curator release/mnemosyne
           cp -R mnemo-core/mnemo_core mnemo-core/pyproject.toml mnemo-core/Dockerfile mnemo-core/README.md mnemo-core/LICENSE release/mnemo-core/
+          cp -R mnemo-curator/mnemo_curator mnemo-curator/pyproject.toml mnemo-curator/Dockerfile mnemo-curator/README.md mnemo-curator/LICENSE release/mnemo-curator/
           cp -R mnemo-ui/dist mnemo-ui/nginx.conf mnemo-ui/Dockerfile LICENSE release/mnemo-ui/
           git archive HEAD \
             mnemo-core \
+            mnemo-curator \
             mnemo-ui \
             deploy \
             docs \
@@ -117,6 +138,7 @@ jobs:
             | tar -x -C release/mnemosyne
           cp -R mnemo-ui/dist release/mnemosyne/mnemo-ui/
           tar -C release -czf "mnemo-core-${{ steps.version.outputs.VERSION }}.tgz" mnemo-core
+          tar -C release -czf "mnemo-curator-${{ steps.version.outputs.VERSION }}.tgz" mnemo-curator
           tar -C release -czf "mnemo-ui-${{ steps.version.outputs.VERSION }}.tgz" mnemo-ui
           tar -C release -czf "mnemosyne-${{ steps.version.outputs.VERSION }}.tgz" mnemosyne
 
@@ -144,6 +166,15 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/mnemo-ui:${{ steps.version.outputs.VERSION }}
             ghcr.io/${{ github.repository_owner }}/mnemo-ui:latest
+
+      - name: Build and push curator image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7
+        with:
+          context: mnemo-curator
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/mnemo-curator:${{ steps.version.outputs.VERSION }}
+            ghcr.io/${{ github.repository_owner }}/mnemo-curator:latest
 
       - name: Build Linux packages
         run: |
@@ -176,9 +207,11 @@ jobs:
           body: ${{ steps.changelog.outputs.NOTES }}
           files: |
             mnemo-core-${{ steps.version.outputs.VERSION }}.tgz
+            mnemo-curator-${{ steps.version.outputs.VERSION }}.tgz
             mnemo-ui-${{ steps.version.outputs.VERSION }}.tgz
             mnemosyne-${{ steps.version.outputs.VERSION }}.tgz
             mnemo-core/dist/*
+            mnemo-curator/dist/*
             mnemosyne_${{ steps.version.outputs.VERSION }}_amd64.deb
             mnemosyne-${{ steps.version.outputs.VERSION }}.x86_64.rpm
           draft: false

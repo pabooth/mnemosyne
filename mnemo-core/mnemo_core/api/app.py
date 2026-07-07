@@ -12,7 +12,8 @@ from .audit import AuditMiddleware
 from .auth import require_admin, require_api_token
 from .deps import build_runner
 from .limits import IntakeLimitsMiddleware
-from .routers import audit, health, ingest, jobs, process, publish, sources, webhooks
+from .routers import health
+from .v1 import audit, index, ingest, jobs, process, publish, sources, webhooks
 
 
 def create_app(cfg: Settings | None = None) -> FastAPI:
@@ -44,17 +45,20 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
     app.add_middleware(AuditMiddleware)
 
     app.include_router(health.router)
+    v1 = "/api/v1"
     protected = [Depends(require_api_token)]
-    app.include_router(ingest.router, dependencies=protected)
-    app.include_router(process.router, dependencies=protected)
-    app.include_router(publish.router, dependencies=protected)
-    app.include_router(jobs.router, dependencies=protected)
-    app.include_router(sources.router, dependencies=protected)
+    app.include_router(ingest.router, prefix=v1, dependencies=protected)
+    app.include_router(process.router, prefix=v1, dependencies=protected)
+    app.include_router(publish.router, prefix=v1, dependencies=protected)
+    app.include_router(jobs.router, prefix=v1, dependencies=protected)
+    app.include_router(sources.router, prefix=v1, dependencies=protected)
+    app.include_router(index.router, prefix=v1, dependencies=protected)
     app.include_router(
         audit.router,
+        prefix=v1,
         dependencies=[Depends(require_api_token), Depends(require_admin)],
     )
-    app.include_router(webhooks.router)
+    app.include_router(webhooks.router, prefix=v1)
 
     def runner_factory() -> PipelineRunner:
         return build_runner(get_settings())

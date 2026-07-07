@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/api/publish", response_model=PublishResult)
+@router.post("/publish", response_model=PublishResult)
 async def publish(
     req: ProcessedDocument,
     runner: PipelineRunner = Depends(get_runner),

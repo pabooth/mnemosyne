@@ -11,7 +11,7 @@ from ...models import DocumentInput
 from ...pipeline.runner import PipelineRunner
 from ..deps import get_runner
 
-router = APIRouter(prefix="/api/webhooks")
+router = APIRouter(prefix="/webhooks")
 
 
 @router.post("/github", status_code=202)

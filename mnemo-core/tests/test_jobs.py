@@ -26,7 +26,7 @@ def test_async_job_records_result(tmp_path):
 
     with TestClient(app) as client:
         created = client.post(
-            "/api/jobs?kind=process",
+            "/api/v1/jobs?kind=process",
             json={"content": "Deploy instructions"},
             headers={"Authorization": "Bearer test-secret"},
         )
@@ -34,7 +34,7 @@ def test_async_job_records_result(tmp_path):
         job_id = created.json()["id"]
         for _ in range(20):
             result = client.get(
-                f"/api/jobs/{job_id}",
+                f"/api/v1/jobs/{job_id}",
                 headers={"Authorization": "Bearer test-secret"},
             )
             if result.json()["status"] == "succeeded":
@@ -53,7 +53,7 @@ def test_named_submitter_cannot_read_admin_audit(tmp_path):
     app = create_app(settings)
     with TestClient(app) as client:
         response = client.get(
-            "/api/audit",
+            "/api/v1/audit",
             headers={"Authorization": "Bearer alice-secret"},
         )
     assert response.status_code == 403

@@ -17,7 +17,7 @@ def test_webhook_requires_valid_signature(tmp_path):
     body = json.dumps({"ref": "refs/heads/main"}).encode()
     with TestClient(app) as client:
         response = client.post(
-            "/api/webhooks/github",
+            "/api/v1/webhooks/github",
             content=body,
             headers={
                 "Content-Type": "application/json",
@@ -39,7 +39,7 @@ def test_webhook_ignores_unwatched_branch(tmp_path):
     signature = "sha256=" + hmac.new(b"secret", body, hashlib.sha256).hexdigest()
     with TestClient(app) as client:
         response = client.post(
-            "/api/webhooks/github",
+            "/api/v1/webhooks/github",
             content=body,
             headers={
                 "Content-Type": "application/json",

@@ -8,7 +8,7 @@ from ...models import DocumentInput
 from ...pipeline.runner import PipelineRunner
 from ..deps import get_runner
 
-router = APIRouter(prefix="/api/jobs")
+router = APIRouter(prefix="/jobs")
 
 
 class DocumentBatch(RootModel[list[DocumentInput]]):

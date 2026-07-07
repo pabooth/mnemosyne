@@ -17,6 +17,20 @@ MNEMO_API_TOKENS=alice:first-secret:submitter,bob:second-secret:admin
 
 The shared `MNEMO_API_TOKEN` is treated as an administrator.
 
+## REST API
+
+Content and job routes are versioned under `/api/v1`. `/health` and `/ready`
+remain unversioned for infrastructure probes.
+
+Bearer-token REST routes require:
+
+```http
+Authorization: Bearer <token>
+```
+
+The GitHub webhook route is also under `/api/v1`, but it uses the
+`X-Hub-Signature-256` HMAC signature header instead of bearer-token auth.
+
 ## Provider settings
 
 | Provider | Variables |
@@ -84,7 +98,7 @@ access to the directory containing `STATE_DB_PATH`; see the
 Configure the webhook URL as:
 
 ```text
-https://mnemosyne.example.com/api/webhooks/github
+https://mnemosyne.example.com/api/v1/webhooks/github
 ```
 
 Select the GitHub **push** event and use the same secret in GitHub and
@@ -100,16 +114,37 @@ SOURCE_URL_ALLOWED_HOSTS=docs.example.com,handbook.example.com
 
 Redirects are not followed.
 
-## Self-audit
+## Curator
 
-`POST /api/audit/knowledge-base` scans Markdown in the configured repository
-for stale review dates, missing owners, duplicate titles, and broken relative
-links.
+`mnemo-curator` is optional. It scans Git-backed Markdown content, records
+findings through the configured issue tracker, and can submit safe fixes back
+through `mnemo-core`.
 
 | Variable | Default |
 |---|---|
-| `AUDIT_STALE_AFTER_DAYS` | `180` |
-| `AUDIT_MAX_FILES` | `500` |
+| `CURATOR_STALE_AFTER_DAYS` | `180` |
+| `CURATOR_MAX_FILES` | `500` |
+| `CURATOR_DEFAULT_OWNER` | `unset` |
+| `CURATOR_ISSUE_TRACKER` | `github` |
+| `CURATOR_ISSUE_LABELS` | `mnemo-curator` |
+| `CURATOR_ISSUE_DB_PATH` | `./data/mnemo-curator-issues.db` |
+| `CURATOR_SEMANTIC_RESOLUTION_ENABLED` | `false` |
+
+Supported issue trackers:
+
+- `github`: creates issues in `GITHUB_REPO` using `GITHUB_TOKEN`.
+- `jira`: creates issues through Jira REST using `JIRA_BASE_URL`,
+  `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_PROJECT_KEY`, and `JIRA_ISSUE_TYPE`.
+- `sqlite`: stores findings locally in `CURATOR_ISSUE_DB_PATH`.
+
+Run a scan with Docker Compose:
+
+```bash
+docker compose --profile curator run --rm curator
+```
+
+Enable semantic rewrites only when `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and
+`OPENAI_MODEL` point to an approved OpenAI-compatible provider.
 
 ## OpenTelemetry
 

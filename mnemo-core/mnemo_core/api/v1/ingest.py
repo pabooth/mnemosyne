@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from ...models import DocumentInput, ProcessedDocument
+from ...models import DocumentInput, IngestResult
 from ...pipeline import PipelineError
 from ...pipeline.runner import PipelineRunner
 from ..deps import get_runner
@@ -12,16 +12,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/api/process", response_model=ProcessedDocument)
-async def process(
+@router.post("/ingest", response_model=IngestResult)
+async def ingest(
     req: DocumentInput,
     runner: PipelineRunner = Depends(get_runner),
-) -> ProcessedDocument:
-    """Classify, augment, and format a document. Returns the structured result without committing."""
+) -> IngestResult:
+    """Full pipeline in one call: classify, augment, format, commit, and raise a PR."""
     try:
-        return await runner.process(req)
+        return await runner.run(req)
     except PipelineError as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
     except Exception:
-        logger.exception("Unexpected error during process")
+        logger.exception("Unexpected error during ingest")
         raise HTTPException(status_code=500, detail="Internal server error") from None

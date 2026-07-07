@@ -26,6 +26,7 @@ body:
       label: Affected component
       options:
         - mnemo-core
+        - mnemo-curator
         - mnemo-ui
         - Docker or deployment
         - MCP integration
