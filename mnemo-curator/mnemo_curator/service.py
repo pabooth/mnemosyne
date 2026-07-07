@@ -24,11 +24,22 @@ class CuratorService:
     async def scan(self, resolve: bool = False) -> CuratorReport:
         documents = await self.github.list_documents()
         findings = self.inspector.inspect(documents)
-        recorded = [await self._record_issue(finding) for finding in findings]
+        recorded = []
+        for finding in findings:
+            try:
+                recorded.append(await self._record_issue(finding))
+            except Exception:
+                recorded.append(finding)
+
         resolutions: list[Resolution] = []
         if resolve:
             by_path = {document.path: document for document in documents}
-            resolutions = [await self._resolve_finding(by_path, finding) for finding in recorded]
+            for finding in recorded:
+                try:
+                    resolutions.append(await self._resolve_finding(by_path, finding))
+                except Exception as error:
+                    resolutions.append(Resolution(finding=finding, status="failed", reason=str(error)[:2_000]))
+
         return CuratorReport(
             repository=self.settings.github_repo,
             documents_scanned=len(documents),
