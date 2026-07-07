@@ -9,7 +9,8 @@ Releases are performed by a maintainer and follow
 2. Move relevant entries from `CHANGELOG.md`'s `Unreleased` section into a
    section named `## [X.Y.Z] - YYYY-MM-DD`.
 3. Update `VERSION`, `mnemo-core/pyproject.toml`,
-   `mnemo-ui/package.json`, and `mnemo-ui/package-lock.json` to `X.Y.Z`.
+   `mnemo-curator/pyproject.toml`, `mnemo-ui/package.json`, and
+   `mnemo-ui/package-lock.json` to `X.Y.Z`.
 4. Open and merge a release pull request.
 
 After the release pull request is merged, update local `main`, create the tag,
