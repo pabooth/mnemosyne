@@ -96,8 +96,8 @@ mnemosyne --version
 | `POST /api/v1/sources/url`       | Allow-listed URL intake                                        |
 | `POST /api/v1/sources/github`    | File intake from the configured GitHub repository              |
 | `POST /api/v1/webhooks/github`   | Signed GitHub push webhook                                     |
-| `POST /api/v1/index/trigger`     | On-demand reindex job (contract stub, ADR-013)                 |
-| `POST /api/v1/index/reconcile`   | Repo/Vector-DB reconciliation job (contract stub, ADR-013)     |
+| `POST /api/v1/index/trigger`     | On-demand embed-and-write of specific paths (ADR-014)          |
+| `POST /api/v1/index/reconcile`   | Full repo/Vector-DB reconciliation pass (ADR-014)              |
 | `/mcp/sse`                       | MCP intake server                                              |
 
 The REST API is versioned by URI path (ADR-013); `/health` and `/ready` are

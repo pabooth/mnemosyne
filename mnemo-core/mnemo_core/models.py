@@ -57,3 +57,25 @@ class PublishResult(BaseModel):
 class IngestResult(BaseModel):
     document: ProcessedDocument
     publish: PublishResult
+
+
+class IndexTriggerRequest(BaseModel):
+    """On-demand reindex of content that just merged."""
+
+    commit_sha: str = Field(default="", max_length=64)
+    paths: list[str] = Field(default_factory=list, max_length=500)
+
+
+class IndexReconcileRequest(BaseModel):
+    """Force a reconciliation pass: diff the repo at main against the
+    Vector DB by content hash and process only what is missing."""
+
+    dry_run: bool = False
+
+
+class IndexResult(BaseModel):
+    chunks: int = 0
+    added: int = 0
+    updated: int = 0
+    removed: int = 0
+    unchanged: int = 0

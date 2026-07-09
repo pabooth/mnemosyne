@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+- Pluggable vector-index layer (ADR-014) with `sqlite-vec` as the embedded
+  reference implementation, sharing the same SQLite file as durable job
+  storage.
+- Pluggable embedding provider (`EMBEDDING_PROVIDER`: `openai` or `ollama`),
+  independent from `LLM_PROVIDER` since Anthropic and DeepSeek don't offer
+  an embeddings API.
+- `POST /api/v1/index/trigger` and `POST /api/v1/index/reconcile` now embed
+  and index Markdown content instead of failing as contract stubs:
+  `trigger` embeds specific paths on demand; `reconcile` diffs the full
+  repo against the vector index by content hash and processes only what
+  changed.
+
 ## [2.0.0] - 2026-07-07
 
 

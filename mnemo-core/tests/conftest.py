@@ -3,6 +3,7 @@ import json
 import pytest
 
 from mnemo_core.config import Settings, configure_settings
+from mnemo_core.embeddings.base import EmbeddingProvider
 from mnemo_core.llm.base import LLMProvider
 from mnemo_core.models import DocumentInput, ProcessedDocument, PublishResult
 from mnemo_core.pipeline.publish import Publisher
@@ -68,6 +69,29 @@ class FakePublisher(Publisher):
     async def publish(self, doc: ProcessedDocument) -> PublishResult:
         self.last_doc = doc
         return self.result
+
+
+class FakeEmbedding(EmbeddingProvider):
+    def __init__(self, dimension: int = 4) -> None:
+        self.dimension = dimension
+        self.calls: list[list[str]] = []
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        self.calls.append(list(texts))
+        return [[float(i)] + [0.0] * (self.dimension - 1) for i in range(len(texts))]
+
+
+class FakeContentSource:
+    def __init__(self, documents: dict[str, str]) -> None:
+        self.documents = documents
+        self.fetched_refs: list[str] = []
+
+    async def fetch(self, path: str, ref: str = "") -> str:
+        self.fetched_refs.append(ref)
+        return self.documents[path]
+
+    async def list_documents(self) -> list[tuple[str, str]]:
+        return list(self.documents.items())
 
 
 def processed_doc(**overrides) -> ProcessedDocument:

@@ -1,10 +1,14 @@
 from fastapi import Depends
 
 from ..config import Settings, get_settings
+from ..embeddings.factory import get_embedding_provider
+from ..indexing.github import GitHubContentSource
+from ..indexing.service import Indexer
 from ..llm.base import LLMProvider
 from ..llm.factory import get_provider
 from ..pipeline.publish import GitHubPublisher, Publisher
 from ..pipeline.runner import PipelineRunner
+from ..vector.factory import get_vector_index
 
 
 def build_runner(
@@ -42,3 +46,21 @@ def get_runner(
     cfg: Settings = Depends(get_settings),
 ) -> PipelineRunner:
     return PipelineRunner(llm, publisher, timeout_seconds=cfg.request_timeout_seconds)
+
+
+def build_indexer(cfg: Settings | None = None) -> Indexer:
+    cfg = get_settings() if cfg is None else cfg
+    return Indexer(
+        vector_index=get_vector_index(cfg),
+        embedding=get_embedding_provider(cfg),
+        content_source=GitHubContentSource(
+            token=cfg.github_token,
+            repo=cfg.github_repo,
+            docs_root=cfg.docs_root,
+            max_files=cfg.index_max_files,
+        ),
+    )
+
+
+def get_indexer(cfg: Settings = Depends(get_settings)) -> Indexer:
+    return build_indexer(cfg)

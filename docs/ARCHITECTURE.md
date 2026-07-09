@@ -125,7 +125,7 @@ The v1 API supports synchronous and durable asynchronous workflow shapes:
 - `GET /api/v1/audit` exposes the admin-only durable job audit trail.
 - `POST /api/v1/sources/file`, `POST /api/v1/sources/url`, and `POST /api/v1/sources/github` create durable jobs from uploaded files, allow-listed URLs, or files in the configured GitHub repository.
 - `POST /api/v1/webhooks/github` accepts signed GitHub push webhooks and queues ingest jobs for changed Markdown files on the watched branch.
-- `POST /api/v1/index/trigger` and `POST /api/v1/index/reconcile` are contract stubs (ADR-013) for the indexer: they queue durable jobs that fail immediately until indexing logic is implemented.
+- `POST /api/v1/index/trigger` and `POST /api/v1/index/reconcile` queue durable indexing jobs: `trigger` embeds specific paths on demand, `reconcile` diffs the full repo against the vector index by content hash and processes only what's missing or changed (ADR-014).
 
 Publishing remains a governed capability of `mnemo-core`. `/api/v1/publish`
 exists so a human-edited preview can be committed exactly as reviewed; it
@@ -273,3 +273,9 @@ Key decisions governing this project are documented as ADRs in `/docs/ADRs/`.
 | 006 | MCP as intake interface only, not retrieval      | Accepted |
 | 007 | Pluggable KB layer, MkDocs Material as reference | Accepted |
 | 008 | MCP transport and client compatibility           | Accepted |
+| 009 | Ship mnemo-ui as a standalone static container   | Accepted |
+| 010 | Maintain mnemo-ui as source modules, not a monolithic HTML bundle | Accepted |
+| 011 | Tiered review model for KB contributions         | Accepted |
+| 012 | Container-level decomposition of Mnemosyne       | Accepted |
+| 013 | API contract & versioning strategy               | Accepted |
+| 014 | Pluggable vector-index layer, sqlite-vec as reference | Accepted |

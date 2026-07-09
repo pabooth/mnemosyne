@@ -58,6 +58,21 @@ class Settings(BaseSettings):
     otel_service_name: str = "mnemo-core"
     log_level: str = "INFO"
 
+    # Vector index (ADR-014) — embedded sqlite-vec by default; empty
+    # vector_db_path reuses the same SQLite file as durable job storage.
+    vector_store: str = "sqlite-vec"
+    vector_db_path: str = ""
+    vector_embedding_dim: int = 1536
+
+    # Embedding provider — independent from LLM_PROVIDER since not every
+    # LLM provider (e.g. Anthropic, DeepSeek) offers an embeddings API.
+    embedding_provider: str = "openai"
+    embedding_openai_model: str = "text-embedding-3-small"
+    embedding_ollama_model: str = "nomic-embed-text"
+
+    # Indexer (ADR-012/ADR-014)
+    index_max_files: int = 2000
+
 
 def get_settings() -> Settings:
     global _settings_cache
