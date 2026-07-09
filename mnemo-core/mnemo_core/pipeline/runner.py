@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 
 from opentelemetry import metrics
@@ -9,6 +10,8 @@ from . import ProcessingError, PublishError
 from .classify import classify_augment_format
 from .dedup import DuplicateChecker
 from .publish import Publisher
+
+logger = logging.getLogger(__name__)
 
 
 class PipelineRunner:
@@ -40,16 +43,22 @@ class PipelineRunner:
         try:
             async with asyncio.timeout(self._timeout_seconds):
                 result = await classify_augment_format(doc, self._llm)
-                if self._dedup is not None:
-                    result.duplicate_candidates = await self._dedup.find_candidates(result)
-            self._record("process", "succeeded", started)
-            return result
         except TimeoutError as e:
             self._record("process", "timed_out", started)
             raise ProcessingError("LLM processing timed out") from e
         except Exception:
             self._record("process", "failed", started)
             raise
+
+        if self._dedup is not None:
+            try:
+                async with asyncio.timeout(self._timeout_seconds):
+                    result.duplicate_candidates = await self._dedup.find_candidates(result)
+            except Exception:
+                logger.warning("Dedup check failed, continuing without candidates", exc_info=True)
+
+        self._record("process", "succeeded", started)
+        return result
 
     async def publish(self, doc: ProcessedDocument) -> PublishResult:
         """Commit a processed document to Git and raise a PR."""

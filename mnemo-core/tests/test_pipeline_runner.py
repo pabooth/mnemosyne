@@ -48,6 +48,22 @@ async def test_process_attaches_duplicate_candidates_when_dedup_configured(tmp_p
     assert doc.duplicate_candidates[0].path == "how-to/deploy.md"
 
 
+async def test_process_succeeds_when_dedup_check_fails():
+    class FailingDedup:
+        async def find_candidates(self, doc):
+            raise RuntimeError("embedding provider unavailable")
+
+    runner = build_runner(
+        publisher=FakePublisher(),
+        llm=FakeLLM(llm_json_response()),
+        dedup=FailingDedup(),
+    )
+
+    doc = await runner.process(sample_input())
+
+    assert doc.duplicate_candidates == []
+
+
 async def test_run_processes_then_publishes():
     llm = FakeLLM(llm_json_response())
     publisher = FakePublisher()
