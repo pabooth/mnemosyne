@@ -8,7 +8,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
-from .models import DocumentInput
+from .indexing.service import Indexer
+from .models import DocumentInput, IndexReconcileRequest, IndexTriggerRequest
 from .pipeline.runner import PipelineRunner
 
 JobKind = Literal["process", "ingest", "index_trigger", "index_reconcile"]
@@ -195,9 +196,10 @@ class JobManager:
         actor: str,
         payload: BaseModel,
         runner: PipelineRunner | None = None,
+        indexer: Indexer | None = None,
     ) -> dict[str, Any]:
         job = self.store.create_job(kind, actor, payload)
-        task = asyncio.create_task(self._run(job["id"], kind, payload, runner))
+        task = asyncio.create_task(self._run(job["id"], kind, payload, runner, indexer))
         self._tasks[job["id"]] = task
         task.add_done_callback(lambda _: self._tasks.pop(job["id"], None))
         return job
@@ -208,11 +210,12 @@ class JobManager:
         kind: JobKind,
         payload: BaseModel,
         runner: PipelineRunner | None,
+        indexer: Indexer | None,
     ) -> None:
         for attempt in range(1, self.max_attempts + 1):
             self.store.update_job(job_id, "running", attempts=attempt)
             try:
-                result = await self._execute(kind, payload, runner)
+                result = await self._execute(kind, payload, runner, indexer)
                 self.store.update_job(
                     job_id,
                     "succeeded",
@@ -254,9 +257,20 @@ class JobManager:
         kind: JobKind,
         payload: BaseModel,
         runner: PipelineRunner | None,
+        indexer: Indexer | None,
     ) -> BaseModel:
-        if kind in ("index_trigger", "index_reconcile"):
-            raise NotImplementedError(f"Job kind '{kind}' is a contract stub with no implementation yet")
+        if kind == "index_trigger":
+            if indexer is None:
+                raise NotImplementedError(f"Job kind '{kind}' requires an indexer")
+            if not isinstance(payload, IndexTriggerRequest):
+                raise NotImplementedError(f"Job kind '{kind}' requires an IndexTriggerRequest payload")
+            return await indexer.trigger(payload.paths, payload.commit_sha)
+        if kind == "index_reconcile":
+            if indexer is None:
+                raise NotImplementedError(f"Job kind '{kind}' requires an indexer")
+            if not isinstance(payload, IndexReconcileRequest):
+                raise NotImplementedError(f"Job kind '{kind}' requires an IndexReconcileRequest payload")
+            return await indexer.reconcile(dry_run=payload.dry_run)
         if runner is None:
             raise NotImplementedError(f"Job kind '{kind}' requires a pipeline runner")
         if not isinstance(payload, DocumentInput):

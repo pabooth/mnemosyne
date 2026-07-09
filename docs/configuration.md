@@ -40,6 +40,30 @@ The GitHub webhook route is also under `/api/v1`, but it uses the
 | DeepSeek | `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL` |
 | Ollama | `OLLAMA_BASE_URL`, `OLLAMA_MODEL` |
 
+## Vector index and embeddings (ADR-014)
+
+`POST /api/v1/index/trigger` and `POST /api/v1/index/reconcile` embed
+Markdown content into a pluggable vector index. The reference implementation
+is embedded and file-based, so no separate service is required.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `VECTOR_STORE` | `sqlite-vec` | Only `sqlite-vec` is currently supported |
+| `VECTOR_DB_PATH` | *(empty)* | Empty reuses the same SQLite file as `STATE_DB_PATH` |
+| `VECTOR_EMBEDDING_DIM` | `1536` | Must match the active embedding model's output size |
+| `EMBEDDING_PROVIDER` | `openai` | `openai` or `ollama` |
+| `EMBEDDING_OPENAI_MODEL` | `text-embedding-3-small` | Uses `OPENAI_API_KEY`/`OPENAI_BASE_URL` |
+| `EMBEDDING_OLLAMA_MODEL` | `nomic-embed-text` | Uses `OLLAMA_BASE_URL`; 768-dimensional, so set `VECTOR_EMBEDDING_DIM=768` alongside it |
+| `INDEX_MAX_FILES` | `2000` | Cap on files walked during a reconciliation pass |
+
+`EMBEDDING_PROVIDER` is independent from `LLM_PROVIDER`: Anthropic and
+DeepSeek don't offer an embeddings API, so an OpenAI-compatible or Ollama
+embedding model is required regardless of which `LLM_PROVIDER` is used for
+classification and augmentation.
+
+Postgres with `pgvector` is the documented scale-out option once a
+deployment's corpus outgrows the embedded default; it is not yet implemented.
+
 ## Operational limits
 
 | Variable | Default |
