@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `trigger` embeds specific paths on demand; `reconcile` diffs the full
   repo against the vector index by content hash and processes only what
   changed.
+- Read-path dedup check (`DEDUP_ENABLED`, off by default): `process` and
+  `ingest` can check the vector index for likely-existing duplicates before
+  returning. Matches never block the pipeline — they're attached to the
+  result as `duplicate_candidates` and noted in the PR body for the human
+  reviewer to weigh.
 
 ## [2.0.0] - 2026-07-07
 

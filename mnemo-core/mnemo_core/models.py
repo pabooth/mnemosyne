@@ -25,6 +25,18 @@ class DocumentInput(BaseModel):
         return value
 
 
+class DuplicateCandidate(BaseModel):
+    """A possible existing-KB match surfaced by the read-path dedup check.
+
+    ``score`` is the vector index's raw distance (lower is more similar for
+    the sqlite-vec reference implementation); it is not a normalised
+    similarity percentage.
+    """
+
+    path: str
+    score: float
+
+
 class ProcessedDocument(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -38,6 +50,7 @@ class ProcessedDocument(BaseModel):
     last_reviewed: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
     flags: list[str] = Field(max_length=50)
     body: str = Field(min_length=1, max_length=MAX_BODY_CHARS)
+    duplicate_candidates: list[DuplicateCandidate] = Field(default_factory=list)
 
     @field_validator("tags", "flags")
     @classmethod

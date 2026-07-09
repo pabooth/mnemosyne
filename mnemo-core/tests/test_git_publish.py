@@ -119,3 +119,20 @@ async def test_github_publisher_requires_repo():
     publisher = GitHubPublisher(github_token="gh-test", github_repo="")
     with pytest.raises(PublishError, match="GITHUB_REPO"):
         await publisher.publish(processed_doc())
+
+
+def test_build_publish_plan_omits_duplicate_section_when_no_candidates():
+    plan = build_publish_plan(processed_doc(), "acme/kb", today=date(2026, 6, 14))
+    assert "Possible duplicates" not in plan.pr_body
+
+
+def test_build_publish_plan_notes_duplicate_candidates():
+    from mnemo_core.models import DuplicateCandidate
+
+    doc = processed_doc(
+        duplicate_candidates=[DuplicateCandidate(path="how-to/deploy.md", score=0.021)]
+    )
+    plan = build_publish_plan(doc, "acme/kb", today=date(2026, 6, 14))
+    assert "Possible duplicates" in plan.pr_body
+    assert "how-to/deploy.md" in plan.pr_body
+    assert "0.021" in plan.pr_body

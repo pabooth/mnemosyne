@@ -56,6 +56,14 @@ def build_publish_plan(
     branch = f"mnemo/{doc.type}/{slug}-{today.isoformat()}-{suffix}"
     content_b64 = base64.b64encode(markdown.encode()).decode()
 
+    duplicate_note = ""
+    if doc.duplicate_candidates:
+        matches = "\n".join(
+            f"- `{candidate.path}` (distance {candidate.score:.3f})"
+            for candidate in doc.duplicate_candidates
+        )
+        duplicate_note = f"\n\n**Possible duplicates — please check before merging:**\n{matches}"
+
     return PublishPlan(
         repo=repo,
         file_path=file_path,
@@ -66,7 +74,8 @@ def build_publish_plan(
         pr_body=(
             f"**Type:** {doc.type}\n"
             f"**Owner:** {doc.owner}\n"
-            f"**Summary:** {doc.summary}\n\n"
+            f"**Summary:** {doc.summary}"
+            f"{duplicate_note}\n\n"
             "Added by Mnemosyne ingestion pipeline."
         ),
     )

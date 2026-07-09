@@ -164,6 +164,7 @@ The pipeline has a shared processing path and two outcomes:
 1. **Diataxis Classification** — the document is classified into one of four Diataxis content types: tutorial, how-to, reference, or explanation. This step uses the LLM.
 2. **Content Augmentation** — metadata, frontmatter, summaries, and tags are generated and applied. This step uses the LLM.
 3. **Format and Structure** — the document is structured according to the target KB's conventions. This step uses the LLM.
+4. **Dependency & Deduplication** *(optional, `DEDUP_ENABLED`)* — the formatted document is chunked and embedded, then checked against the vector index (ADR-014) for likely-existing matches. Matches never block processing; they're attached to the result as `duplicate_candidates` and surfaced in the PR body for the human reviewer to weigh. Off by default, since it requires an embedding provider to be configured.
 
 After processing, the caller either receives a preview response or the ingest workflow continues to the internal publish step:
 

@@ -6,6 +6,7 @@ from ..indexing.github import GitHubContentSource
 from ..indexing.service import Indexer
 from ..llm.base import LLMProvider
 from ..llm.factory import get_provider
+from ..pipeline.dedup import DuplicateChecker
 from ..pipeline.publish import GitHubPublisher, Publisher
 from ..pipeline.runner import PipelineRunner
 from ..vector.factory import get_vector_index
@@ -15,6 +16,7 @@ def build_runner(
     cfg: Settings | None = None,
     publisher: Publisher | None = None,
     llm: LLMProvider | None = None,
+    dedup: DuplicateChecker | None = None,
 ) -> PipelineRunner:
     cfg = get_settings() if cfg is None else cfg
     if publisher is None:
@@ -25,7 +27,9 @@ def build_runner(
         )
     if llm is None:
         llm = get_provider(cfg)
-    return PipelineRunner(llm, publisher, timeout_seconds=cfg.request_timeout_seconds)
+    if dedup is None and cfg.dedup_enabled:
+        dedup = build_dedup_checker(cfg)
+    return PipelineRunner(llm, publisher, dedup=dedup, timeout_seconds=cfg.request_timeout_seconds)
 
 
 def get_publisher(cfg: Settings = Depends(get_settings)) -> Publisher:
@@ -40,12 +44,29 @@ def get_llm(cfg: Settings = Depends(get_settings)) -> LLMProvider:
     return get_provider(cfg)
 
 
+def build_dedup_checker(cfg: Settings | None = None) -> DuplicateChecker:
+    cfg = get_settings() if cfg is None else cfg
+    return DuplicateChecker(
+        vector_index=get_vector_index(cfg),
+        embedding=get_embedding_provider(cfg),
+        max_distance=cfg.dedup_max_distance,
+        top_k=cfg.dedup_top_k,
+    )
+
+
+def get_dedup_checker(cfg: Settings = Depends(get_settings)) -> DuplicateChecker | None:
+    if not cfg.dedup_enabled:
+        return None
+    return build_dedup_checker(cfg)
+
+
 def get_runner(
     publisher: Publisher = Depends(get_publisher),
     llm: LLMProvider = Depends(get_llm),
+    dedup: DuplicateChecker | None = Depends(get_dedup_checker),
     cfg: Settings = Depends(get_settings),
 ) -> PipelineRunner:
-    return PipelineRunner(llm, publisher, timeout_seconds=cfg.request_timeout_seconds)
+    return PipelineRunner(llm, publisher, dedup=dedup, timeout_seconds=cfg.request_timeout_seconds)
 
 
 def build_indexer(cfg: Settings | None = None) -> Indexer:
