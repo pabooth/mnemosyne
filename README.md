@@ -130,6 +130,9 @@ and operational settings are documented in
 - URL ingestion is disabled until an explicit hostname allow-list is set.
 - Knowledge-base inspection and resolution runs in `mnemo-curator`; fixes are
   submitted back through `mnemo-core` and still become pull requests.
+- The optional read-path dedup check (`DEDUP_ENABLED`) never blocks
+  processing; likely-duplicate matches are surfaced in the PR body for the
+  human reviewer to weigh.
 
 Repository branch protection must still require human approval and prevent the
 Mnemosyne service account from merging.

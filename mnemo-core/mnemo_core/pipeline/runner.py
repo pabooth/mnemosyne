@@ -7,6 +7,7 @@ from ..llm.base import LLMProvider
 from ..models import DocumentInput, IngestResult, ProcessedDocument, PublishResult
 from . import ProcessingError, PublishError
 from .classify import classify_augment_format
+from .dedup import DuplicateChecker
 from .publish import Publisher
 
 
@@ -15,10 +16,12 @@ class PipelineRunner:
         self,
         llm: LLMProvider,
         publisher: Publisher,
+        dedup: DuplicateChecker | None = None,
         timeout_seconds: float = 120,
     ) -> None:
         self._llm = llm
         self._publisher = publisher
+        self._dedup = dedup
         self._timeout_seconds = timeout_seconds
         meter = metrics.get_meter("mnemo-core.pipeline")
         self._operations = meter.create_counter(
@@ -37,6 +40,8 @@ class PipelineRunner:
         try:
             async with asyncio.timeout(self._timeout_seconds):
                 result = await classify_augment_format(doc, self._llm)
+                if self._dedup is not None:
+                    result.duplicate_candidates = await self._dedup.find_candidates(result)
             self._record("process", "succeeded", started)
             return result
         except TimeoutError as e:

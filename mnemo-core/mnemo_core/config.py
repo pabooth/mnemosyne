@@ -73,6 +73,13 @@ class Settings(BaseSettings):
     # Indexer (ADR-012/ADR-014)
     index_max_files: int = 2000
 
+    # Read-path dedup check ("Dependency & Deduplication"). Off by default:
+    # enabling it calls the embedding provider on every process/ingest call,
+    # which existing deployments may not have configured or want to pay for.
+    dedup_enabled: bool = False
+    dedup_max_distance: float = 0.35
+    dedup_top_k: int = 3
+
 
 def get_settings() -> Settings:
     global _settings_cache

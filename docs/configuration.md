@@ -64,6 +64,24 @@ classification and augmentation.
 Postgres with `pgvector` is the documented scale-out option once a
 deployment's corpus outgrows the embedded default; it is not yet implemented.
 
+## Read-path dedup check
+
+`process` and `ingest` can check the vector index for likely-existing
+duplicates before returning. Matches never block the pipeline — they're
+attached to the response as `duplicate_candidates` and noted in the PR body
+for the human reviewer.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `DEDUP_ENABLED` | `false` | Off by default — enabling it calls the embedding provider on every `process`/`ingest` |
+| `DEDUP_MAX_DISTANCE` | `0.35` | Maximum vector-index distance to still count as a candidate; lower is stricter |
+| `DEDUP_TOP_K` | `3` | Maximum candidates returned per document |
+
+`DEDUP_MAX_DISTANCE` is a raw distance from the configured vector store, not
+a normalised similarity percentage, and its useful range depends on the
+embedding model in use — tune it against real content rather than trusting
+the default as-is.
+
 ## Operational limits
 
 | Variable | Default |
