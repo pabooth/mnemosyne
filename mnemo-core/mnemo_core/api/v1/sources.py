@@ -82,6 +82,32 @@ def _is_public_host(host: str) -> bool:
     return True
 
 
+def _resolve_public_ip(host: str) -> str:
+    try:
+        addrinfo = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+    except socket.gaierror as exc:
+        raise HTTPException(status_code=403, detail="Unable to resolve URL host") from exc
+
+    for info in addrinfo:
+        ip_str = info[4][0]
+        try:
+            ip_obj = ipaddress.ip_address(ip_str)
+        except ValueError:
+            continue
+        if (
+            ip_obj.is_private
+            or ip_obj.is_loopback
+            or ip_obj.is_link_local
+            or ip_obj.is_multicast
+            or ip_obj.is_reserved
+            or ip_obj.is_unspecified
+        ):
+            continue
+        return ip_str
+
+    raise HTTPException(status_code=403, detail="URL host resolves to a non-public address")
+
+
 @router.post("/url", status_code=202)
 async def ingest_url(
     source: UrlSource,
@@ -103,8 +129,14 @@ async def ingest_url(
         raise HTTPException(status_code=403, detail="URL host is not allow-listed")
     if not _is_public_host(host):
         raise HTTPException(status_code=403, detail="URL host resolves to a non-public address")
+    resolved_ip = _resolve_public_ip(host)
+    request_path = parsed_url.path or "/"
+    if parsed_url.query:
+        request_path = f"{request_path}?{parsed_url.query}"
+    target_url = f"{parsed_url.scheme}://{resolved_ip}{request_path}"
+    headers = {"Host": host}
     async with httpx.AsyncClient(timeout=30, follow_redirects=False) as client:
-        response = await client.get(str(source.url))
+        response = await client.get(target_url, headers=headers)
         response.raise_for_status()
     if len(response.content) > cfg.request_max_body_bytes:
         raise HTTPException(status_code=413, detail="Remote document is too large")
