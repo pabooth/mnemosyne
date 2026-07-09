@@ -1,3 +1,5 @@
+import ipaddress
+import socket
 from typing import Literal
 from urllib.parse import urlparse
 
@@ -56,6 +58,30 @@ async def upload_file(
     )
 
 
+def _is_public_host(host: str) -> bool:
+    try:
+        addrinfo = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False
+
+    for info in addrinfo:
+        ip_str = info[4][0]
+        try:
+            ip_obj = ipaddress.ip_address(ip_str)
+        except ValueError:
+            return False
+        if (
+            ip_obj.is_private
+            or ip_obj.is_loopback
+            or ip_obj.is_link_local
+            or ip_obj.is_multicast
+            or ip_obj.is_reserved
+            or ip_obj.is_unspecified
+        ):
+            return False
+    return True
+
+
 @router.post("/url", status_code=202)
 async def ingest_url(
     source: UrlSource,
@@ -69,9 +95,14 @@ async def ingest_url(
         for host in cfg.source_url_allowed_hosts.split(",")
         if host.strip()
     }
-    host = (urlparse(str(source.url)).hostname or "").lower()
+    parsed_url = urlparse(str(source.url))
+    host = (parsed_url.hostname or "").lower()
+    if parsed_url.scheme not in {"http", "https"}:
+        raise HTTPException(status_code=400, detail="Only HTTP(S) URLs are supported")
     if not allowed or host not in allowed:
         raise HTTPException(status_code=403, detail="URL host is not allow-listed")
+    if not _is_public_host(host):
+        raise HTTPException(status_code=403, detail="URL host resolves to a non-public address")
     async with httpx.AsyncClient(timeout=30, follow_redirects=False) as client:
         response = await client.get(str(source.url))
         response.raise_for_status()
