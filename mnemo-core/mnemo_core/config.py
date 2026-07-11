@@ -58,10 +58,12 @@ class Settings(BaseSettings):
     otel_service_name: str = "mnemo-core"
     log_level: str = "INFO"
 
-    # Vector index (ADR-014) — embedded sqlite-vec by default; empty
-    # vector_db_path reuses the same SQLite file as durable job storage.
+    # Vector index (ADR-014/ADR-015) — embedded sqlite-vec by default, in
+    # its own file so embedding writes don't lock-contend with job status
+    # writes to state_db_path. Set to "" to explicitly share state_db_path
+    # instead.
     vector_store: str = "sqlite-vec"
-    vector_db_path: str = ""
+    vector_db_path: str = "./data/vectors.db"
     vector_embedding_dim: int = 1536
 
     # Embedding provider — independent from LLM_PROVIDER since not every

@@ -49,7 +49,7 @@ is embedded and file-based, so no separate service is required.
 | Variable | Default | Purpose |
 |---|---|---|
 | `VECTOR_STORE` | `sqlite-vec` | Only `sqlite-vec` is currently supported |
-| `VECTOR_DB_PATH` | *(empty)* | Empty reuses the same SQLite file as `STATE_DB_PATH` |
+| `VECTOR_DB_PATH` | `./data/vectors.db` | Its own file by default (ADR-015); set to `""` to explicitly share `STATE_DB_PATH` instead |
 | `VECTOR_EMBEDDING_DIM` | `1536` | Must match the active embedding model's output size |
 | `EMBEDDING_PROVIDER` | `openai` | `openai` or `ollama` |
 | `EMBEDDING_OPENAI_MODEL` | `text-embedding-3-small` | Uses `OPENAI_API_KEY`/`OPENAI_BASE_URL` |
@@ -127,6 +127,30 @@ Root is retained as the compatibility default. A dedicated host UID/GID is
 strongly recommended for production. The selected identity must have write
 access to the directory containing `STATE_DB_PATH`; see the
 [Docker deployment guide](./deployment/docker-compose.md#runtime-user).
+
+## Persistence (ADR-015)
+
+Data is bind-mounted to the host, not stored in anonymous Docker volumes.
+Each deployable gets its own subdirectory of one configurable parent:
+
+| Variable | Default (Compose) | Default (packaged) | Purpose |
+|---|---|---|---|
+| `MNEMO_DATA_DIR` | `./data` | `/var/lib/mnemosyne/data` | Parent directory; each service writes to `$MNEMO_DATA_DIR/<component>` |
+
+`mnemo-core` writes to `$MNEMO_DATA_DIR/mnemo-core` (`mnemosyne.db`,
+`vectors.db`); `mnemo-curator` writes to `$MNEMO_DATA_DIR/mnemo-curator`
+(`mnemo-curator-issues.db`, only when `CURATOR_ISSUE_TRACKER=sqlite`). The
+two are never shared, preserving the failure-domain separation between
+`mnemo-core` and `mnemo-curator` established in ADR-012.
+
+All SQLite connections (jobs, vector index, curator's SQLite issue tracker)
+run in WAL mode.
+
+Under a non-root `MNEMO_UID`/`MNEMO_GID`, create and `chown` each
+component's subdirectory before first run — see
+[Docker deployment guide](./deployment/docker-compose.md#runtime-user).
+Backing up a deployment means backing up `$MNEMO_DATA_DIR`; there is no
+built-in backup tooling beyond that.
 
 ## Webhook intake
 

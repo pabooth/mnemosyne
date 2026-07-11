@@ -28,6 +28,7 @@ class JobStore:
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path)
         connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA journal_mode=WAL")
         return connection
 
     def _initialize(self) -> None:

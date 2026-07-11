@@ -64,14 +64,18 @@ MNEMO_UID=991
 MNEMO_GID=991
 ```
 
-The configured identity must be able to write `STATE_DB_PATH`. If `/data` is a
-host bind mount, create and assign the directory before starting:
+The configured identity must be able to write `STATE_DB_PATH`. Data is
+bind-mounted per component (ADR-015) under `MNEMO_DATA_DIR` (default
+`./data`), so create and assign each component's subdirectory before
+starting:
 
 ```bash
-sudo install -d -o 991 -g 991 -m 700 /srv/mnemosyne/data
+sudo install -d -o 991 -g 991 -m 700 /srv/mnemosyne/data/mnemo-core
+sudo install -d -o 991 -g 991 -m 700 /srv/mnemosyne/data/mnemo-curator
 ```
 
-Named volumes created previously as root may also need a one-time ownership
+Set `MNEMO_DATA_DIR=/srv/mnemosyne/data` in `.env` to point at them. Data
+created previously under root ownership may also need a one-time ownership
 change before switching to a non-root UID/GID. Confirm the active identity
 after startup:
 
@@ -131,5 +135,5 @@ approved OpenAI-compatible provider configured with `OPENAI_API_KEY`,
 `OPENAI_BASE_URL`, and `OPENAI_MODEL`.
 
 Set `CURATOR_ISSUE_TRACKER` to `github`, `jira`, or `sqlite`. The SQLite
-fallback stores findings in the `mnemo-curator-data` volume at
-`/data/mnemo-curator-issues.db`.
+fallback stores findings under `$MNEMO_DATA_DIR/mnemo-curator/mnemo-curator-issues.db`
+(ADR-015).
