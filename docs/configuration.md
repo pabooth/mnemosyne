@@ -49,12 +49,18 @@ is embedded and file-based, so no separate service is required.
 | Variable | Default | Purpose |
 |---|---|---|
 | `VECTOR_STORE` | `sqlite-vec` | Only `sqlite-vec` is currently supported |
-| `VECTOR_DB_PATH` | *(empty)* | Empty reuses the same SQLite file as `STATE_DB_PATH` |
+| `VECTOR_DB_PATH` | `./data/vectors.db` (bare-metal) / `/data/vectors.db` (Docker) | Its own file by default (ADR-015), separate from `STATE_DB_PATH`; not set in `.env.example` because Docker Compose hardcodes the container path directly, like `STATE_DB_PATH` |
 | `VECTOR_EMBEDDING_DIM` | `1536` | Must match the active embedding model's output size |
 | `EMBEDDING_PROVIDER` | `openai` | `openai` or `ollama` |
 | `EMBEDDING_OPENAI_MODEL` | `text-embedding-3-small` | Uses `OPENAI_API_KEY`/`OPENAI_BASE_URL` |
 | `EMBEDDING_OLLAMA_MODEL` | `nomic-embed-text` | Uses `OLLAMA_BASE_URL`; 768-dimensional, so set `VECTOR_EMBEDDING_DIM=768` alongside it |
 | `INDEX_MAX_FILES` | `2000` | Cap on files walked during a reconciliation pass |
+
+Set `VECTOR_DB_PATH=""` explicitly to share the same file as `STATE_DB_PATH`
+instead of a separate one. Do not set `VECTOR_DB_PATH` in a Docker Compose
+`.env` file to a relative path — it would override the container's hardcoded
+`/data/vectors.db` with a path relative to the container's working directory
+rather than the bind-mounted data directory.
 
 `EMBEDDING_PROVIDER` is independent from `LLM_PROVIDER`: Anthropic and
 DeepSeek don't offer an embeddings API, so an OpenAI-compatible or Ollama
@@ -127,6 +133,80 @@ Root is retained as the compatibility default. A dedicated host UID/GID is
 strongly recommended for production. The selected identity must have write
 access to the directory containing `STATE_DB_PATH`; see the
 [Docker deployment guide](./deployment/docker-compose.md#runtime-user).
+
+## Persistence (ADR-015)
+
+Data is bind-mounted to the host, not stored in anonymous Docker volumes.
+Each deployable gets its own subdirectory of one configurable parent:
+
+| Variable | Default (Compose) | Default (packaged) | Purpose |
+|---|---|---|---|
+| `MNEMO_DATA_DIR` | `./data` | `/var/lib/mnemosyne/data` | Parent directory; each service writes to `$MNEMO_DATA_DIR/<component>` |
+
+`mnemo-core` writes to `$MNEMO_DATA_DIR/mnemo-core` (`mnemosyne.db`,
+`vectors.db`); `mnemo-curator` writes to `$MNEMO_DATA_DIR/mnemo-curator`
+(`mnemo-curator-issues.db`, only when `CURATOR_ISSUE_TRACKER=sqlite`). The
+two are never shared, preserving the failure-domain separation between
+`mnemo-core` and `mnemo-curator` established in ADR-012.
+
+All SQLite connections (jobs, vector index, curator's SQLite issue tracker)
+run in WAL mode.
+
+Under a non-root `MNEMO_UID`/`MNEMO_GID`, create and `chown` each
+component's subdirectory before first run — see
+[Docker deployment guide](./deployment/docker-compose.md#runtime-user).
+
+### Backup and restore
+
+Do not `cp`, `tar`, or `rsync` a live database file directly. In WAL mode,
+recent commits live in a separate `-wal` file that isn't merged into the
+main `.db` file until a checkpoint runs; a plain file copy can miss those
+commits or capture the `.db` and `-wal` files at inconsistent points in
+time, producing a backup that looks fine and fails on restore. Use one of:
+
+**SQLite online backup (no downtime)** — safe to run against a live,
+WAL-mode database:
+
+```bash
+sqlite3 "$MNEMO_DATA_DIR/mnemo-core/mnemosyne.db" ".backup '$BACKUP_DIR/mnemosyne.db'"
+sqlite3 "$MNEMO_DATA_DIR/mnemo-core/vectors.db" ".backup '$BACKUP_DIR/vectors.db'"
+sqlite3 "$MNEMO_DATA_DIR/mnemo-curator/mnemo-curator-issues.db" ".backup '$BACKUP_DIR/mnemo-curator-issues.db'"
+```
+
+**Coordinated filesystem snapshot** — an LVM, ZFS/btrfs, or cloud
+block-storage snapshot of `$MNEMO_DATA_DIR` is also safe, provided the
+snapshot itself is atomic; unlike `cp`/`tar`/`rsync`, it captures the `.db`,
+`-wal`, and `-shm` files at exactly the same instant.
+
+**Quiescence (simplest, requires downtime)** — stop the service, then copy:
+
+```bash
+docker compose stop core
+cp "$MNEMO_DATA_DIR"/mnemo-core/*.db "$BACKUP_DIR/"
+docker compose start core
+```
+
+Verify every backup immediately, before trusting it:
+
+```bash
+sqlite3 "$BACKUP_DIR/mnemosyne.db" "PRAGMA integrity_check;"
+```
+
+**Restore**: stop the service, replace the live files with verified
+backups, delete any stale `-wal`/`-shm` files (they reference offsets in
+the old file and are invalid against a restored one), run
+`PRAGMA integrity_check` again against the restored file, then restart:
+
+```bash
+docker compose stop core
+cp "$BACKUP_DIR/mnemosyne.db" "$MNEMO_DATA_DIR/mnemo-core/mnemosyne.db"
+rm -f "$MNEMO_DATA_DIR"/mnemo-core/mnemosyne.db-wal "$MNEMO_DATA_DIR"/mnemo-core/mnemosyne.db-shm
+sqlite3 "$MNEMO_DATA_DIR/mnemo-core/mnemosyne.db" "PRAGMA integrity_check;"
+docker compose start core
+```
+
+Do not bring the service back up on a restored file that fails
+`integrity_check`.
 
 ## Webhook intake
 

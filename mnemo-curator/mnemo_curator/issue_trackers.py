@@ -92,8 +92,13 @@ class SQLiteIssueTracker:
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
 
+    def _connect(self) -> sqlite3.Connection:
+        connection = sqlite3.connect(self.path)
+        connection.execute("PRAGMA journal_mode=WAL")
+        return connection
+
     async def record(self, finding: Finding) -> str:
-        db = sqlite3.connect(self.path)
+        db = self._connect()
         try:
             with db:
                 cursor = db.execute(
@@ -115,7 +120,7 @@ class SQLiteIssueTracker:
         return f"sqlite://{self.path}#curator_issues/{issue_id}"
 
     def _initialize(self) -> None:
-        db = sqlite3.connect(self.path)
+        db = self._connect()
         try:
             with db:
                 db.execute(

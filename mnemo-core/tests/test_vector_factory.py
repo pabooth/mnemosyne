@@ -9,7 +9,7 @@ def test_vector_factory_returns_sqlite_vec_by_default(tmp_path):
     settings = Settings(state_db_path=str(tmp_path / "mnemosyne.db"))
     index = get_vector_index(settings)
     assert isinstance(index, SqliteVecIndex)
-    assert index.path == str(tmp_path / "mnemosyne.db")
+    assert index.path != settings.state_db_path
 
 
 def test_vector_factory_prefers_dedicated_vector_db_path(tmp_path):
@@ -19,6 +19,15 @@ def test_vector_factory_prefers_dedicated_vector_db_path(tmp_path):
     )
     index = get_vector_index(settings)
     assert index.path == str(tmp_path / "vectors.db")
+
+
+def test_vector_factory_can_share_state_db_path_when_explicitly_empty(tmp_path):
+    settings = Settings(
+        state_db_path=str(tmp_path / "mnemosyne.db"),
+        vector_db_path="",
+    )
+    index = get_vector_index(settings)
+    assert index.path == str(tmp_path / "mnemosyne.db")
 
 
 def test_vector_factory_rejects_unknown_store(tmp_path):

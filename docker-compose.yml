@@ -34,7 +34,7 @@ services:
       GITHUB_WEBHOOK_MAX_FILES: ${GITHUB_WEBHOOK_MAX_FILES:-20}
       SOURCE_URL_ALLOWED_HOSTS: ${SOURCE_URL_ALLOWED_HOSTS:-}
       VECTOR_STORE: ${VECTOR_STORE:-sqlite-vec}
-      VECTOR_DB_PATH: ${VECTOR_DB_PATH:-}
+      VECTOR_DB_PATH: /data/vectors.db
       VECTOR_EMBEDDING_DIM: ${VECTOR_EMBEDDING_DIM:-1536}
       EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
       EMBEDDING_OPENAI_MODEL: ${EMBEDDING_OPENAI_MODEL:-text-embedding-3-small}
@@ -53,7 +53,7 @@ services:
       start_period: 10s
     restart: unless-stopped
     volumes:
-      - mnemo-data:/data
+      - ${MNEMO_DATA_DIR:-./data}/mnemo-core:/data
 
   ui:
     build:
@@ -94,7 +94,7 @@ services:
       OPENAI_MODEL: ${CURATOR_OPENAI_MODEL:-gpt-4o-mini}
     command: ["mnemo-curator", "scan"]
     volumes:
-      - mnemo-curator-data:/data
+      - ${MNEMO_DATA_DIR:-./data}/mnemo-curator:/data
 
   proxy:
     image: nginxinc/nginx-unprivileged:stable-alpine
@@ -132,7 +132,3 @@ services:
       - ./deploy/observability/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     ports:
       - "${MNEMO_OBSERVABILITY_BIND_ADDRESS:-127.0.0.1}:3000:3000"
-
-volumes:
-  mnemo-data:
-  mnemo-curator-data:

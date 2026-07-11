@@ -280,3 +280,4 @@ Key decisions governing this project are documented as ADRs in `/docs/ADRs/`.
 | 012 | Container-level decomposition of Mnemosyne       | Accepted |
 | 013 | API contract & versioning strategy               | Accepted |
 | 014 | Pluggable vector-index layer, sqlite-vec as reference | Accepted |
+| 015 | Persistence layout: bind-mounted, component-named data dirs, WAL-mode SQLite | Accepted |

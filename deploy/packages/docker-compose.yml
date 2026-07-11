@@ -6,8 +6,9 @@ services:
       - /etc/mnemosyne/mnemosyne.env
     environment:
       STATE_DB_PATH: /data/mnemosyne.db
+      VECTOR_DB_PATH: /data/vectors.db
     volumes:
-      - mnemo-data:/data
+      - ${MNEMO_DATA_DIR:-/var/lib/mnemosyne/data}/mnemo-core:/data
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7777/health')"]
       interval: 30s
@@ -32,7 +33,7 @@ services:
       MNEMO_CORE_URL: http://core:7777
       CURATOR_ISSUE_DB_PATH: /data/mnemo-curator-issues.db
     volumes:
-      - mnemo-curator-data:/data
+      - ${MNEMO_DATA_DIR:-/var/lib/mnemosyne/data}/mnemo-curator:/data
     depends_on:
       core:
         condition: service_healthy
@@ -48,7 +49,3 @@ services:
     volumes:
       - /usr/share/mnemosyne/deploy/reverse-proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
-
-volumes:
-  mnemo-data:
-  mnemo-curator-data:

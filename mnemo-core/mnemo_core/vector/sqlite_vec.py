@@ -8,13 +8,13 @@ from .base import VectorIndex, VectorMatch, VectorRecord
 
 
 class SqliteVecIndex(VectorIndex):
-    """Reference vector-index implementation (ADR-014).
+    """Reference vector-index implementation (ADR-014/ADR-015).
 
     Embedded and file-based: loads the ``sqlite-vec`` extension into a
-    plain SQLite file, by default the same file mnemo-core already uses
-    for durable job storage (``state_db_path``), so a self-hoster gains
-    semantic search without standing up a second storage subsystem or a
-    new service.
+    plain SQLite file, by default its own file separate from durable job
+    storage so bulk embedding writes don't lock-contend with job status
+    updates. A self-hoster gains semantic search without standing up a
+    second storage subsystem or a new service.
     """
 
     def __init__(self, path: str, dimension: int) -> None:
@@ -28,6 +28,7 @@ class SqliteVecIndex(VectorIndex):
         connection.enable_load_extension(True)
         sqlite_vec.load(connection)
         connection.enable_load_extension(False)
+        connection.execute("PRAGMA journal_mode=WAL")
         return connection
 
     def _initialize(self) -> None:

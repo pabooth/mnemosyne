@@ -170,6 +170,7 @@ reviews:
     ignore_title_keywords:
       - "WIP"
       - "[skip review]"
+    labels: ['!dependencies']
     drafts: false
 
 chat:
