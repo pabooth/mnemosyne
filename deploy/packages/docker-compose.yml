@@ -6,7 +6,7 @@ services:
       - /etc/mnemosyne/mnemosyne.env
     environment:
       STATE_DB_PATH: /data/mnemosyne.db
-      VECTOR_DB_PATH: ${VECTOR_DB_PATH:-/data/vectors.db}
+      VECTOR_DB_PATH: /data/vectors.db
     volumes:
       - ${MNEMO_DATA_DIR:-/var/lib/mnemosyne/data}/mnemo-core:/data
     healthcheck:

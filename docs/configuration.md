@@ -49,12 +49,18 @@ is embedded and file-based, so no separate service is required.
 | Variable | Default | Purpose |
 |---|---|---|
 | `VECTOR_STORE` | `sqlite-vec` | Only `sqlite-vec` is currently supported |
-| `VECTOR_DB_PATH` | `./data/vectors.db` | Its own file by default (ADR-015); set to `""` to explicitly share `STATE_DB_PATH` instead |
+| `VECTOR_DB_PATH` | `./data/vectors.db` (bare-metal) / `/data/vectors.db` (Docker) | Its own file by default (ADR-015), separate from `STATE_DB_PATH`; not set in `.env.example` because Docker Compose hardcodes the container path directly, like `STATE_DB_PATH` |
 | `VECTOR_EMBEDDING_DIM` | `1536` | Must match the active embedding model's output size |
 | `EMBEDDING_PROVIDER` | `openai` | `openai` or `ollama` |
 | `EMBEDDING_OPENAI_MODEL` | `text-embedding-3-small` | Uses `OPENAI_API_KEY`/`OPENAI_BASE_URL` |
 | `EMBEDDING_OLLAMA_MODEL` | `nomic-embed-text` | Uses `OLLAMA_BASE_URL`; 768-dimensional, so set `VECTOR_EMBEDDING_DIM=768` alongside it |
 | `INDEX_MAX_FILES` | `2000` | Cap on files walked during a reconciliation pass |
+
+Set `VECTOR_DB_PATH=""` explicitly to share the same file as `STATE_DB_PATH`
+instead of a separate one. Do not set `VECTOR_DB_PATH` in a Docker Compose
+`.env` file to a relative path — it would override the container's hardcoded
+`/data/vectors.db` with a path relative to the container's working directory
+rather than the bind-mounted data directory.
 
 `EMBEDDING_PROVIDER` is independent from `LLM_PROVIDER`: Anthropic and
 DeepSeek don't offer an embeddings API, so an OpenAI-compatible or Ollama
