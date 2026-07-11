@@ -155,8 +155,58 @@ run in WAL mode.
 Under a non-root `MNEMO_UID`/`MNEMO_GID`, create and `chown` each
 component's subdirectory before first run — see
 [Docker deployment guide](./deployment/docker-compose.md#runtime-user).
-Backing up a deployment means backing up `$MNEMO_DATA_DIR`; there is no
-built-in backup tooling beyond that.
+
+### Backup and restore
+
+Do not `cp`, `tar`, or `rsync` a live database file directly. In WAL mode,
+recent commits live in a separate `-wal` file that isn't merged into the
+main `.db` file until a checkpoint runs; a plain file copy can miss those
+commits or capture the `.db` and `-wal` files at inconsistent points in
+time, producing a backup that looks fine and fails on restore. Use one of:
+
+**SQLite online backup (no downtime)** — safe to run against a live,
+WAL-mode database:
+
+```bash
+sqlite3 "$MNEMO_DATA_DIR/mnemo-core/mnemosyne.db" ".backup '$BACKUP_DIR/mnemosyne.db'"
+sqlite3 "$MNEMO_DATA_DIR/mnemo-core/vectors.db" ".backup '$BACKUP_DIR/vectors.db'"
+sqlite3 "$MNEMO_DATA_DIR/mnemo-curator/mnemo-curator-issues.db" ".backup '$BACKUP_DIR/mnemo-curator-issues.db'"
+```
+
+**Coordinated filesystem snapshot** — an LVM, ZFS/btrfs, or cloud
+block-storage snapshot of `$MNEMO_DATA_DIR` is also safe, provided the
+snapshot itself is atomic; unlike `cp`/`tar`/`rsync`, it captures the `.db`,
+`-wal`, and `-shm` files at exactly the same instant.
+
+**Quiescence (simplest, requires downtime)** — stop the service, then copy:
+
+```bash
+docker compose stop core
+cp "$MNEMO_DATA_DIR"/mnemo-core/*.db "$BACKUP_DIR/"
+docker compose start core
+```
+
+Verify every backup immediately, before trusting it:
+
+```bash
+sqlite3 "$BACKUP_DIR/mnemosyne.db" "PRAGMA integrity_check;"
+```
+
+**Restore**: stop the service, replace the live files with verified
+backups, delete any stale `-wal`/`-shm` files (they reference offsets in
+the old file and are invalid against a restored one), run
+`PRAGMA integrity_check` again against the restored file, then restart:
+
+```bash
+docker compose stop core
+cp "$BACKUP_DIR/mnemosyne.db" "$MNEMO_DATA_DIR/mnemo-core/mnemosyne.db"
+rm -f "$MNEMO_DATA_DIR"/mnemo-core/mnemosyne.db-wal "$MNEMO_DATA_DIR"/mnemo-core/mnemosyne.db-shm
+sqlite3 "$MNEMO_DATA_DIR/mnemo-core/mnemosyne.db" "PRAGMA integrity_check;"
+docker compose start core
+```
+
+Do not bring the service back up on a restored file that fails
+`integrity_check`.
 
 ## Webhook intake
 

@@ -59,7 +59,7 @@ A decision is needed on where this state actually lives on disk, whether mnemo-c
 #### Option 2: Bind-mount to a configurable parent directory, one subdirectory per component *(chosen)*
 
 **Pros:**
-- Visible host path, trivially backed up (`cp`/`tar`/`rsync`)
+- Visible host path, backed up with a WAL-safe procedure (SQLite's online-backup API or a coordinated filesystem snapshot) instead of an opaque volume with no story at all — see `docs/configuration.md`'s Persistence section for the actual steps
 - Consistent with `/etc/mnemosyne/` already existing for config (ADR-013's packaged deployment)
 - Per-component subdirectory preserves ADR-012's failure-domain separation — no directory or volume is shared between `mnemo-core` and `mnemo-curator`
 
@@ -126,6 +126,7 @@ WAL mode is the standard answer to concurrent SQLite access and costs nothing to
 - New SQLite-backed state lives under its component's subdirectory of `MNEMO_DATA_DIR`; it must never be shared with another deployable's subdirectory
 - New SQLite connections must enable WAL mode on open, consistent with `mnemo_core/jobs.py`, `mnemo_core/vector/sqlite_vec.py`, and `mnemo_curator/issue_trackers.py`
 - Non-root `MNEMO_UID`/`MNEMO_GID` deployments must pre-create and `chown` each component's data subdirectory before first run — documented in `docs/deployment/docker-compose.md`
+- Backups must use the documented WAL-safe procedure (SQLite online backup or a coordinated filesystem snapshot) in `docs/configuration.md`, never a plain file copy of a live database — and every restore must pass `PRAGMA integrity_check` before the service is brought back up
 - Any proposal to share storage between `mnemo-core` and `mnemo-curator`, or to reintroduce anonymous named volumes, should reference and supersede this ADR
 
 ---
@@ -141,7 +142,7 @@ Positive:
 Negative / trade-offs:
 - Bind mounts require the host directory to exist with correct ownership before first run under non-root UID/GID — an existing requirement made explicit rather than incidental to named-volume behaviour
 - Two files instead of one inside `mnemo-core`'s data directory
-- No automated backup mechanism is shipped by this ADR — it documents where to point one, not the tooling itself; that remains a follow-up if the project wants it
+- No automated backup mechanism is shipped by this ADR — it documents the manual, WAL-safe procedure (`docs/configuration.md`) and requires restore verification, but scheduling and running it is left to the operator; automation remains a follow-up if the project wants it
 
 ---
 
