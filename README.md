@@ -18,6 +18,8 @@ The project contains:
   submitting documents.
 - `mnemo-curator`: optional inspection and resolution service for Git-backed
   knowledge-base content.
+- `mnemo-proxy`: optional edge router providing one public origin for the UI,
+  REST API, and MCP endpoint.
 
 > [!WARNING]
 > Mnemosyne sends document content to the configured LLM provider. Do not use it
@@ -46,7 +48,7 @@ Set `MNEMO_API_TOKEN`, `GITHUB_TOKEN`, `GITHUB_REPO`, and your LLM credentials.
 ## Quick start
 
 ```console
-docker compose up --build
+docker compose --profile ui up --build
 ```
 
 Open <http://localhost:8888>. Enter `MNEMO_API_TOKEN` under **Settings**.
@@ -65,6 +67,10 @@ For the optional telemetry stack:
 docker compose --profile observability up --build
 ```
 
+Without a profile, `docker compose up --build` starts only `mnemo-core` for a
+headless deployment. The `ui` profile starts `mnemo-ui` and `mnemo-proxy` in
+addition to core.
+
 For the optional curator scan:
 
 ```console
@@ -73,7 +79,8 @@ docker compose --profile curator run --rm curator
 
 Tagged releases also publish `.deb` and `.rpm` deployment packages. After
 installation, configure `/etc/mnemosyne/mnemosyne.env` and run
-`mnemosyne up -d`.
+`mnemosyne --profile ui up -d` for the browser interface, or
+`mnemosyne up -d` for core only.
 
 ```console
 mnemosyne --version
@@ -154,6 +161,9 @@ cd ../mnemo-curator
 python -m venv .venv
 .venv/bin/pip install -e ".[dev]"
 .venv/bin/pytest -q
+
+cd ../mnemo-proxy
+docker build -t mnemo-proxy:local .
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and

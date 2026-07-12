@@ -17,6 +17,8 @@
 | **Review date** | YYYY-MM-DD |
 | **Supersedes** | — |
 | **Superseded by** | — |
+| **Amends** | — |
+| **Amended by** | — |
 
 ---
 
@@ -102,6 +104,7 @@ Negative / trade-offs:
 Usage notes (delete on copy):
 - Filename: NNN-short-kebab-slug.md, numbered sequentially.
 - Status values: Proposed → Accepted; also Superseded (set "Superseded by" here and "Supersedes" in the successor).
+- Partial changes preserve Accepted status and use reciprocal "Amends" and "Amended by" fields; reserve supersession for replacing the whole decision.
 - Statuses in the blockquote and Identity table must match.
 - Review date is typically Date + 1 year.
 - Section separators are `---`; use em-dash (—) for empty table fields.

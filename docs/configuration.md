@@ -110,7 +110,7 @@ files:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `MNEMO_UI_BIND_ADDRESS` | `0.0.0.0` | Address for the main reverse-proxy interface |
+| `MNEMO_UI_BIND_ADDRESS` | `0.0.0.0` | Address for the `mnemo-proxy` interface |
 | `MNEMO_CORE_BIND_ADDRESS` | `127.0.0.1` | Address for direct core API access |
 | `MNEMO_OBSERVABILITY_BIND_ADDRESS` | `127.0.0.1` | Address for Grafana and Prometheus |
 | `MNEMO_PORT_UI` | `8888` | Host port for the main interface |
@@ -120,7 +120,7 @@ Use `0.0.0.0` to listen on all host interfaces, `127.0.0.1` for local access
 only, or a specific host IP address to listen only on that interface. The main
 interface defaults to all host interfaces. Direct core and observability
 access default to loopback and should remain private unless placed behind an
-authenticated TLS reverse proxy.
+authenticated TLS ingress.
 
 ## Runtime identity
 

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Standalone `mnemo-proxy` component and versioned container image for routing
+  UI, REST, MCP, and health traffic, replacing the deployment-mounted proxy
+  configuration (ADR-016).
 - Pluggable vector-index layer (ADR-014) with `sqlite-vec` as the embedded
   reference implementation, sharing the same SQLite file as durable job
   storage.
@@ -25,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   returning. Matches never block the pipeline — they're attached to the
   result as `duplicate_candidates` and noted in the PR body for the human
   reviewer to weigh.
+
+### Changed
+
+- Docker Compose now starts only required `mnemo-core` by default. The
+  optional browser stack (`mnemo-ui` and `mnemo-proxy`) requires the `ui`
+  profile; curator and observability retain their existing profiles.
 
 ## [2.0.0] - 2026-07-07
 

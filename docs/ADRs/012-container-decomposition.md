@@ -17,6 +17,8 @@
 | **Review date** | 2027-07-06 |
 | **Supersedes** | — |
 | **Superseded by** | — |
+| **Amends** | — |
+| **Amended by** | ADR-016 (proxy ownership only) |
 
 ---
 

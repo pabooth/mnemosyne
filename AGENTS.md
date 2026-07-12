@@ -42,6 +42,8 @@ Key ADRs:
   submitting documents, and viewing job history.
 - `mnemo-curator` is optional. It owns knowledge-base inspection and
   resolution through internal Inspector and Resolver components.
+- `mnemo-proxy` is optional. It owns edge routing between the browser-facing
+  origin, `mnemo-ui`, and `mnemo-core`; it contains no application logic.
 - `mnemo-bot` is optional and not yet built.
 
 The knowledge base itself is outside Mnemosyne. Mnemosyne feeds a Git-backed
