@@ -15,8 +15,10 @@
 | **Status** | Accepted |
 | **Date** | 2026-07-11 |
 | **Review date** | 2027-07-11 |
-| **Supersedes** | ADR-012 (proxy ownership only) |
+| **Supersedes** | — |
 | **Superseded by** | — |
+| **Amends** | ADR-012 (proxy ownership only) |
+| **Amended by** | — |
 
 ---
 
