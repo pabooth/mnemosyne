@@ -16,15 +16,27 @@ Set `MNEMO_API_TOKEN`, `GITHUB_TOKEN`, `GITHUB_REPO`, and the credentials for
 your selected LLM provider, then run:
 
 ```bash
+docker compose --profile ui up --build
+```
+
+This enables the optional `ui` profile, which starts `mnemo-ui` and
+`mnemo-proxy` alongside the required core service. For a headless deployment,
+omit the profile:
+
+```bash
 docker compose up --build
 ```
+
+That command starts only `mnemo-core`. The `curator` and `observability`
+services also remain disabled unless their profiles are explicitly enabled.
 
 Open <http://localhost:8888>, open **Settings**, disable mock mode, and enter
 the same API token configured in `.env`.
 
 The core API is also available directly at <http://localhost:7777>. Its host
 port is bound to `127.0.0.1`, so it is not reachable from other machines.
-Production deployments should expose only the reverse proxy.
+Production deployments should expose only `mnemo-proxy` (or an equivalent
+site-managed ingress).
 
 Host bindings can be configured in `.env`:
 
@@ -34,11 +46,11 @@ MNEMO_CORE_BIND_ADDRESS=127.0.0.1
 MNEMO_OBSERVABILITY_BIND_ADDRESS=127.0.0.1
 ```
 
-`MNEMO_UI_BIND_ADDRESS=0.0.0.0` exposes the main reverse-proxy interface on
+`MNEMO_UI_BIND_ADDRESS=0.0.0.0` exposes the `mnemo-proxy` interface on
 all host network interfaces. Set it to a specific host address to bind only
 that interface, or `127.0.0.1` for local access only. Keep the core and
 observability bindings on loopback unless they are protected by an
-authenticated TLS reverse proxy.
+authenticated TLS ingress.
 
 ## Runtime user
 

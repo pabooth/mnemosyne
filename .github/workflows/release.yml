@@ -120,14 +120,16 @@ jobs:
 
       - name: Build release archives
         run: |
-          mkdir -p release/mnemo-core release/mnemo-ui release/mnemo-curator release/mnemosyne
+          mkdir -p release/mnemo-core release/mnemo-ui release/mnemo-curator release/mnemo-proxy release/mnemosyne
           cp -R mnemo-core/mnemo_core mnemo-core/pyproject.toml mnemo-core/Dockerfile mnemo-core/README.md mnemo-core/LICENSE release/mnemo-core/
           cp -R mnemo-curator/mnemo_curator mnemo-curator/pyproject.toml mnemo-curator/Dockerfile mnemo-curator/README.md mnemo-curator/LICENSE release/mnemo-curator/
           cp -R mnemo-ui/dist mnemo-ui/nginx.conf mnemo-ui/Dockerfile LICENSE release/mnemo-ui/
+          cp mnemo-proxy/nginx.conf mnemo-proxy/Dockerfile mnemo-proxy/README.md LICENSE release/mnemo-proxy/
           git archive HEAD \
             mnemo-core \
             mnemo-curator \
             mnemo-ui \
+            mnemo-proxy \
             deploy \
             docs \
             docker-compose.yml \
@@ -140,6 +142,7 @@ jobs:
           tar -C release -czf "mnemo-core-${{ steps.version.outputs.VERSION }}.tgz" mnemo-core
           tar -C release -czf "mnemo-curator-${{ steps.version.outputs.VERSION }}.tgz" mnemo-curator
           tar -C release -czf "mnemo-ui-${{ steps.version.outputs.VERSION }}.tgz" mnemo-ui
+          tar -C release -czf "mnemo-proxy-${{ steps.version.outputs.VERSION }}.tgz" mnemo-proxy
           tar -C release -czf "mnemosyne-${{ steps.version.outputs.VERSION }}.tgz" mnemosyne
 
       - name: Log in to GitHub Container Registry
@@ -176,6 +179,15 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/mnemo-curator:${{ steps.version.outputs.VERSION }}
             ghcr.io/${{ github.repository_owner }}/mnemo-curator:latest
 
+      - name: Build and push proxy image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7
+        with:
+          context: mnemo-proxy
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/mnemo-proxy:${{ steps.version.outputs.VERSION }}
+            ghcr.io/${{ github.repository_owner }}/mnemo-proxy:latest
+
       - name: Build Linux packages
         run: |
           docker run --rm \
@@ -209,6 +221,7 @@ jobs:
             mnemo-core-${{ steps.version.outputs.VERSION }}.tgz
             mnemo-curator-${{ steps.version.outputs.VERSION }}.tgz
             mnemo-ui-${{ steps.version.outputs.VERSION }}.tgz
+            mnemo-proxy-${{ steps.version.outputs.VERSION }}.tgz
             mnemosyne-${{ steps.version.outputs.VERSION }}.tgz
             mnemo-core/dist/*
             mnemo-curator/dist/*

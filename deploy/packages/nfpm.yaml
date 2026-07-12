@@ -16,8 +16,6 @@ contents:
     dst: /usr/share/mnemosyne/docker-compose.yml
   - src: VERSION
     dst: /usr/share/mnemosyne/VERSION
-  - src: deploy/reverse-proxy/nginx.conf
-    dst: /usr/share/mnemosyne/deploy/reverse-proxy/nginx.conf
   - src: deploy/observability/otel-collector.yaml
     dst: /usr/share/mnemosyne/deploy/observability/otel-collector.yaml
   - src: deploy/observability/prometheus.yml

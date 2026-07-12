@@ -17,8 +17,8 @@ flowchart TB
         GIT_WEBHOOK["Git Webhook\n(push to watched branch)"]
     end
 
-    subgraph PROXY["Reverse Proxy (optional, production only)"]
-        RP["Reverse Proxy"]
+    subgraph PROXY["mnemo-proxy (optional edge router)"]
+        RP["Nginx routing component"]
     end
 
     subgraph CORE["mnemo-core"]
@@ -196,12 +196,14 @@ Every document submitted through the ingest workflow results in a pull request. 
 
 Preview-only processing is allowed as a non-mutating workflow for user interfaces and internal tooling. Preview output does not reach the KB unless it is later submitted through the governed ingest workflow.
 
-### Reverse Proxy
+### mnemo-proxy
 
-Optional. Not required for local development. In production, a reverse proxy
-sits in front of both mnemo-ui and mnemo-core, routing `/` to the UI and
-`/api/` and `/mcp/` to core. A reference Nginx configuration is provided in
-`/deploy/reverse-proxy/`.
+Optional. `mnemo-proxy` is a standalone container in front of `mnemo-ui` and
+`mnemo-core`, routing `/` to the UI and `/api/`, `/mcp/`, and `/health` to
+core. Its Nginx configuration and image definition live in `/mnemo-proxy/`.
+It contains no application or governance logic. Headless deployments can omit
+it, and production operators can place their TLS ingress in front of it or
+replace it with an equivalent edge router. See ADR-016.
 
 `mnemo-core` is intended to be private rather than directly exposed to the internet. Even so, REST and MCP intake endpoints should require a simple authentication layer so accidental exposure, misrouting, or lateral access does not grant unauthenticated access to LLM processing or PR creation. Bearer-token REST routes use `Authorization: Bearer <token>`; the GitHub webhook route uses `X-Hub-Signature-256` instead.
 
@@ -233,9 +235,9 @@ The MCP server is an intake interface only. It does not expose KB query or retri
 
 Mnemosyne is distributed as:
 
-- Docker images (`mnemo-core` and `mnemo-ui`)
+- Docker images (`mnemo-core`, `mnemo-ui`, `mnemo-curator`, and `mnemo-proxy`)
 - Python wheel and source distribution for `mnemo-core`
-- Release archives for core, UI, and the complete deployment
+- Release archives for each component and the complete deployment
 
 A `docker-compose.yml` in the root provides a local development environment. Production deployment options are documented in `/docs/deployment/`.
 
@@ -248,8 +250,8 @@ A `docker-compose.yml` in the root provides a local development environment. Pro
 ├── mnemo-core/        # REST API, MCP server, ingestion pipeline
 ├── mnemo-ui/          # Framework-free static web frontend
 ├── mnemo-curator/     # Optional KB inspection and resolution service
+├── mnemo-proxy/       # Optional edge-routing container
 ├── deploy/
-│   ├── reverse-proxy/ # Stub configs: Caddy, nginx, Traefik
 │   └── observability/ # Prometheus + Grafana stack
 ├── docs/
 │   ├── ADRs/          # Architecture Decision Records

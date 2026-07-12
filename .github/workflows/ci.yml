@@ -114,5 +114,7 @@ jobs:
         run: docker build -t mnemo-ui:ci mnemo-ui
       - name: Build curator image
         run: docker build -t mnemo-curator:ci mnemo-curator
+      - name: Build proxy image
+        run: docker build -t mnemo-proxy:ci mnemo-proxy
       - name: Validate Compose
-        run: docker compose config
+        run: docker compose --profile ui --profile curator --profile observability config
