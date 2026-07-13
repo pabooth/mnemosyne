@@ -117,4 +117,7 @@ jobs:
       - name: Build proxy image
         run: docker build -t mnemo-proxy:ci mnemo-proxy
       - name: Validate Compose
+        env:
+          # MNEMO_HOME is required by ADR-017; any path satisfies validation
+          MNEMO_HOME: /tmp/mnemosyne
         run: docker compose --profile ui --profile curator --profile observability config

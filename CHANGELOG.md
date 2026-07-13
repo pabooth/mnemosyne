@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   UI, REST, MCP, and health traffic, replacing the deployment-mounted proxy
   configuration (ADR-016).
 - Pluggable vector-index layer (ADR-014) with `sqlite-vec` as the embedded
-  reference implementation, sharing the same SQLite file as durable job
-  storage.
+  reference implementation, in its own SQLite file by default
+  (`VECTOR_DB_PATH=""` opts in to sharing the durable-job file).
 - Pluggable embedding provider (`EMBEDDING_PROVIDER`: `openai` or `ollama`),
   independent from `LLM_PROVIDER` since Anthropic and DeepSeek don't offer
   an embeddings API.
@@ -34,6 +34,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker Compose now starts only required `mnemo-core` by default. The
   optional browser stack (`mnemo-ui` and `mnemo-proxy`) requires the `ui`
   profile; curator and observability retain their existing profiles.
+- Persistence layout (ADR-015): data moved from anonymous named Docker
+  volumes to bind-mounted, per-component directories, with all SQLite
+  stores opened in WAL mode.
+- Instance directory (ADR-017): all instance state — configuration and
+  data — now lives in one directory located by `MNEMO_HOME`
+  (conventionally `~/mnemosyne` for development, `/srv/mnemosyne` on a
+  Linux server), holding `mnemosyne.env` and `data/<component>/`. Docker
+  Compose fails loudly when `MNEMO_HOME` is unset; the `./data` fallback,
+  checkout-root `.env` auto-discovery, and the `MNEMO_DATA_DIR` variable
+  are removed. `.env.example` is renamed `mnemosyne.env.example`.
+- Databases renamed by function (ADR-017): `mnemosyne.db` → `state.db`,
+  `mnemo-curator-issues.db` → `issues.db` (`vectors.db` unchanged), each
+  matching its configuration variable. Existing deployments must migrate —
+  see "Migrating from earlier data layouts" in
+  `docs/deployment/docker-compose.md`.
+
+### Removed
+
+- The `.deb`/`.rpm` packages. They wrapped Docker Compose rather than
+  installing Mnemosyne natively, which added a second deployment surface
+  without the guarantees of OS packaging (upgrades, rollbacks, and
+  uninstalls all bypassed the package manager). Deployment is Docker
+  Compose from a checkout, or the published GHCR images with your own
+  Compose file. A native package that installs the Python applications
+  directly may return in future.
 
 ## [2.0.0] - 2026-07-07
 

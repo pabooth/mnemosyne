@@ -34,11 +34,11 @@ Pushing tag `vX.Y.Z` starts the release workflow. It:
 - verifies the tag, manifests, lockfile, and changelog agree;
 - runs core and UI checks;
 - builds and smoke-tests Python distributions;
-- builds source archives, container images, and Linux packages;
+- builds source archives and container images;
 - publishes versioned and `latest` container images to GHCR;
 - creates a GitHub release using the changelog section as release notes.
 
 Confirm that the GitHub release, archives, wheel, source distribution,
-containers, `.deb`, and `.rpm` artifacts were published successfully.
+and container artifacts were published successfully.
 
 PyPI publishing is not currently configured.

@@ -21,7 +21,7 @@ services:
       MNEMO_API_TOKENS: ${MNEMO_API_TOKENS:-}
       FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:8888}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-      STATE_DB_PATH: /data/mnemosyne.db
+      STATE_DB_PATH: /data/state.db
       REQUEST_TIMEOUT_SECONDS: ${REQUEST_TIMEOUT_SECONDS:-120}
       REQUEST_RATE_LIMIT_PER_MINUTE: ${REQUEST_RATE_LIMIT_PER_MINUTE:-30}
       REQUEST_MAX_CONCURRENCY: ${REQUEST_MAX_CONCURRENCY:-4}
@@ -53,7 +53,7 @@ services:
       start_period: 10s
     restart: unless-stopped
     volumes:
-      - ${MNEMO_DATA_DIR:-./data}/mnemo-core:/data
+      - ${MNEMO_HOME:?Set MNEMO_HOME to your Mnemosyne instance directory (see docs/deployment/docker-compose.md)}/data/mnemo-core:/data
 
   ui:
     build:
@@ -83,7 +83,7 @@ services:
       CURATOR_DEFAULT_OWNER: ${CURATOR_DEFAULT_OWNER:-unset}
       CURATOR_ISSUE_TRACKER: ${CURATOR_ISSUE_TRACKER:-github}
       CURATOR_ISSUE_LABELS: ${CURATOR_ISSUE_LABELS:-mnemo-curator}
-      CURATOR_ISSUE_DB_PATH: /data/mnemo-curator-issues.db
+      CURATOR_ISSUE_DB_PATH: /data/issues.db
       CURATOR_SEMANTIC_RESOLUTION_ENABLED: ${CURATOR_SEMANTIC_RESOLUTION_ENABLED:-false}
       JIRA_BASE_URL: ${JIRA_BASE_URL:-}
       JIRA_EMAIL: ${JIRA_EMAIL:-}
@@ -95,7 +95,7 @@ services:
       OPENAI_MODEL: ${CURATOR_OPENAI_MODEL:-gpt-4o-mini}
     command: ["mnemo-curator", "scan"]
     volumes:
-      - ${MNEMO_DATA_DIR:-./data}/mnemo-curator:/data
+      - ${MNEMO_HOME:?Set MNEMO_HOME to your Mnemosyne instance directory (see docs/deployment/docker-compose.md)}/data/mnemo-curator:/data
 
   proxy:
     build:

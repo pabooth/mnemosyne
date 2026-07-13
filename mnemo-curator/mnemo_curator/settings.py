@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file="mnemosyne.env", extra="ignore")
 
     github_token: str = ""
     github_repo: str = ""
@@ -19,7 +19,12 @@ class Settings(BaseSettings):
     curator_default_owner: str = "unset"
     curator_issue_tracker: Literal["github", "jira", "sqlite"] = "github"
     curator_issue_labels: str = "mnemo-curator"
-    curator_issue_db_path: str = "./data/mnemo-curator-issues.db"
+    # Persistence layout (ADR-015/ADR-017): mnemo-curator stores its state
+    # under its own subdirectory of the data directory. Docker deployments
+    # override this with a container path on the bind-mounted /data;
+    # bare-metal runs resolve it against the working directory,
+    # conventionally $MNEMO_HOME.
+    curator_issue_db_path: str = "./data/mnemo-curator/issues.db"
     curator_semantic_resolution_enabled: bool = False
 
     jira_base_url: str = ""

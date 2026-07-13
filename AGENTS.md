@@ -102,10 +102,10 @@ npm test
 npm run build
 ```
 
-Compose:
+Compose (`MNEMO_HOME` is required by ADR-017, so provide one for the check):
 
 ```bash
-docker compose config
+MNEMO_HOME=/tmp docker compose config
 ```
 
 Curator:

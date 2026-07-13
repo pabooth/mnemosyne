@@ -133,7 +133,7 @@ jobs:
             deploy \
             docs \
             docker-compose.yml \
-            .env.example \
+            mnemosyne.env.example \
             README.md \
             LICENSE \
             VERSION \
@@ -188,21 +188,6 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/mnemo-proxy:${{ steps.version.outputs.VERSION }}
             ghcr.io/${{ github.repository_owner }}/mnemo-proxy:latest
 
-      - name: Build Linux packages
-        run: |
-          docker run --rm \
-            -e VERSION="${{ steps.version.outputs.VERSION }}" \
-            -v "$PWD:/work" \
-            -w /work \
-            ghcr.io/goreleaser/nfpm:v2.43.0 \
-            package --config deploy/packages/nfpm.yaml --packager deb --target "mnemosyne_${{ steps.version.outputs.VERSION }}_amd64.deb"
-          docker run --rm \
-            -e VERSION="${{ steps.version.outputs.VERSION }}" \
-            -v "$PWD:/work" \
-            -w /work \
-            ghcr.io/goreleaser/nfpm:v2.43.0 \
-            package --config deploy/packages/nfpm.yaml --packager rpm --target "mnemosyne-${{ steps.version.outputs.VERSION }}.x86_64.rpm"
-
       - name: Extract changelog section
         id: changelog
         run: |
@@ -225,7 +210,5 @@ jobs:
             mnemosyne-${{ steps.version.outputs.VERSION }}.tgz
             mnemo-core/dist/*
             mnemo-curator/dist/*
-            mnemosyne_${{ steps.version.outputs.VERSION }}_amd64.deb
-            mnemosyne-${{ steps.version.outputs.VERSION }}.x86_64.rpm
           draft: false
           prerelease: false

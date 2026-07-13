@@ -37,13 +37,28 @@ approval.
 
 ## Installation
 
+Mnemosyne keeps all instance state — configuration and data — in one
+directory outside the source tree, located by `MNEMO_HOME` (ADR-017).
+Conventionally `~/mnemosyne` on a development machine, `/srv/mnemosyne` on
+a Linux server.
+
 ```console
 git clone https://github.com/pabooth/mnemosyne.git
 cd mnemosyne
-cp .env.example .env
+
+mkdir -p ~/mnemosyne
+cp mnemosyne.env.example ~/mnemosyne/mnemosyne.env
 ```
 
-Set `MNEMO_API_TOKEN`, `GITHUB_TOKEN`, `GITHUB_REPO`, and your LLM credentials.
+Add to your shell profile (and run now):
+
+```console
+export MNEMO_HOME="$HOME/mnemosyne"
+export COMPOSE_ENV_FILES="$MNEMO_HOME/mnemosyne.env"
+```
+
+Then set `MNEMO_API_TOKEN`, `GITHUB_TOKEN`, `GITHUB_REPO`, and your LLM
+credentials in `$MNEMO_HOME/mnemosyne.env`.
 
 ## Quick start
 
@@ -77,14 +92,9 @@ For the optional curator scan:
 docker compose --profile curator run --rm curator
 ```
 
-Tagged releases also publish `.deb` and `.rpm` deployment packages. After
-installation, configure `/etc/mnemosyne/mnemosyne.env` and run
-`mnemosyne --profile ui up -d` for the browser interface, or
-`mnemosyne up -d` for core only.
-
-```console
-mnemosyne --version
-```
+Tagged releases publish versioned container images to GHCR, so a deployment
+can also pull released images with its own Compose file instead of building
+from a checkout.
 
 ## API and intake interfaces
 

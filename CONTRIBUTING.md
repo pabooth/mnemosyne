@@ -18,7 +18,7 @@ npm test
 npm run build
 
 cd ..
-docker compose config
+MNEMO_HOME=/tmp docker compose config
 ```
 
 Pull requests must preserve mandatory human review: no code path may merge

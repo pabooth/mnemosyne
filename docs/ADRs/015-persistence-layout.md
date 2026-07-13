@@ -17,6 +17,7 @@
 | **Review date** | 2027-07-11 |
 | **Supersedes** | — |
 | **Superseded by** | — |
+| **Amended by** | [ADR-017](017-instance-directory.md) — storage location and database file names; per-component directories, file separation, and WAL mode stand |
 
 ---
 
