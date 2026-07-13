@@ -7,6 +7,7 @@ from .config import get_settings
 from .llm.factory import get_provider
 from .models import DocumentInput
 from .pipeline.classify import classify_augment_format
+from .pipeline.templates import get_template_set
 
 CASES = [
     {
@@ -34,11 +35,13 @@ CASES = [
 
 async def evaluate() -> dict:
     provider = get_provider(get_settings())
+    templates = get_template_set()
     outcomes = []
     for case in CASES:
         document = await classify_augment_format(
             DocumentInput(content=case["content"]),
             provider,
+            templates,
         )
         outcomes.append(
             {

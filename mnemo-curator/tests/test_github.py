@@ -62,6 +62,38 @@ async def test_list_documents_excludes_paths_outside_docs_root():
     assert [doc.path for doc in documents] == ["docs/a.md"]
 
 
+async def test_list_documents_excludes_templates_directory():
+    settings = Settings(github_token="token", github_repo="owner/repo")
+    tree_items = [
+        {"path": "reference/a.md", "type": "blob", "sha": "sha-a"},
+        {"path": "templates/reference/standard.md", "type": "blob", "sha": "sha-t"},
+    ]
+
+    with respx.mock:
+        _mock_repo_and_tree(tree_items)
+        _mock_blob("sha-a", content="A body")
+
+        documents = await GitHubClient(settings).list_documents()
+
+    assert [doc.path for doc in documents] == ["reference/a.md"]
+
+
+async def test_list_documents_excludes_templates_under_docs_root():
+    settings = Settings(github_token="token", github_repo="owner/repo", docs_root="docs")
+    tree_items = [
+        {"path": "docs/reference/a.md", "type": "blob", "sha": "sha-a"},
+        {"path": "docs/templates/reference/standard.md", "type": "blob", "sha": "sha-t"},
+    ]
+
+    with respx.mock:
+        _mock_repo_and_tree(tree_items)
+        _mock_blob("sha-a", content="A body")
+
+        documents = await GitHubClient(settings).list_documents()
+
+    assert [doc.path for doc in documents] == ["docs/reference/a.md"]
+
+
 async def test_list_documents_respects_curator_max_files():
     settings = Settings(github_token="token", github_repo="owner/repo", curator_max_files=1)
     tree_items = [

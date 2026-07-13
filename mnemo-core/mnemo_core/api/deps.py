@@ -9,6 +9,7 @@ from ..llm.factory import get_provider
 from ..pipeline.dedup import DuplicateChecker
 from ..pipeline.publish import GitHubPublisher, Publisher
 from ..pipeline.runner import PipelineRunner
+from ..pipeline.templates import TemplateSet, get_template_set
 from ..vector.factory import get_vector_index
 
 
@@ -29,7 +30,13 @@ def build_runner(
         llm = get_provider(cfg)
     if dedup is None and cfg.dedup_enabled:
         dedup = build_dedup_checker(cfg)
-    return PipelineRunner(llm, publisher, dedup=dedup, timeout_seconds=cfg.request_timeout_seconds)
+    return PipelineRunner(
+        llm,
+        publisher,
+        dedup=dedup,
+        timeout_seconds=cfg.request_timeout_seconds,
+        templates=get_template_set(),
+    )
 
 
 def get_publisher(cfg: Settings = Depends(get_settings)) -> Publisher:
@@ -65,8 +72,15 @@ def get_runner(
     llm: LLMProvider = Depends(get_llm),
     dedup: DuplicateChecker | None = Depends(get_dedup_checker),
     cfg: Settings = Depends(get_settings),
+    templates: TemplateSet = Depends(get_template_set),
 ) -> PipelineRunner:
-    return PipelineRunner(llm, publisher, dedup=dedup, timeout_seconds=cfg.request_timeout_seconds)
+    return PipelineRunner(
+        llm,
+        publisher,
+        dedup=dedup,
+        timeout_seconds=cfg.request_timeout_seconds,
+        templates=templates,
+    )
 
 
 def build_indexer(cfg: Settings | None = None) -> Indexer:
