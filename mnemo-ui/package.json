@@ -2,7 +2,7 @@
   "name": "mnemo-ui",
   "private": true,
   "type": "module",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node tests/static-smoke.mjs"
