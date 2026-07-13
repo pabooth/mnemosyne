@@ -7,7 +7,12 @@ from .openai_compat import OpenAICompatProvider
 
 def get_provider(cfg: Settings | None = None) -> LLMProvider:
     settings = get_settings() if cfg is None else cfg
-    match settings.llm_provider:
+    return get_provider_for(settings.llm_provider, settings)
+
+
+def get_provider_for(provider: str, cfg: Settings | None = None) -> LLMProvider:
+    settings = get_settings() if cfg is None else cfg
+    match provider:
         case "anthropic":
             return AnthropicProvider(
                 api_key=settings.anthropic_api_key,
@@ -25,6 +30,18 @@ def get_provider(cfg: Settings | None = None) -> LLMProvider:
                 base_url="https://api.deepseek.com",
                 model=settings.deepseek_model,
             )
+        case "xai":
+            return OpenAICompatProvider(
+                api_key=settings.xai_api_key,
+                base_url=settings.xai_base_url,
+                model=settings.xai_model,
+            )
+        case "gemini":
+            return OpenAICompatProvider(
+                api_key=settings.gemini_api_key,
+                base_url=settings.gemini_base_url,
+                model=settings.gemini_model,
+            )
         case "ollama":
             return OllamaProvider(
                 base_url=settings.ollama_base_url,
@@ -32,6 +49,6 @@ def get_provider(cfg: Settings | None = None) -> LLMProvider:
             )
         case _:
             raise ValueError(
-                f"Unknown LLM_PROVIDER: {settings.llm_provider!r}. "
-                "Valid options: anthropic, openai, deepseek, ollama"
+                f"Unknown LLM_PROVIDER: {provider!r}. "
+                "Valid options: anthropic, openai, deepseek, xai, gemini, ollama"
             )

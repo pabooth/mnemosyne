@@ -3,6 +3,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 DiataxisType = Literal["tutorial", "how-to", "reference", "explanation"]
+ReviewTier = Literal["tier-1", "tier-2"]
+ReviewVerdict = Literal["accept", "reject"]
 
 MAX_DOCUMENT_CHARS = 1_000_000
 MAX_BODY_CHARS = 1_000_000
@@ -42,6 +44,9 @@ class ProcessedDocument(BaseModel):
 
     title: str = Field(min_length=1, max_length=200)
     type: DiataxisType
+    # Legacy records predate ADR-011. Missing classification must fail closed:
+    # Tier 2 preserves compatibility without allowing automatic merge.
+    review_tier: ReviewTier = "tier-2"
     sub_label: str = Field(default="", max_length=100, pattern=r"^[\w ./-]*$")
     status: Literal["draft", "review"] = "draft"
     tags: list[str] = Field(max_length=25)
@@ -65,11 +70,40 @@ class PublishResult(BaseModel):
     pr_url: str
     branch: str
     file_path: str
+    review: "AdversarialReviewResult | None" = None
+
+
+class ReviewerReport(BaseModel):
+    role: Literal["advocate", "critic"]
+    provider_family: str
+    verdict: ReviewVerdict
+    recommended_tier: ReviewTier
+    concerns: list[str] = Field(default_factory=list, max_length=50)
+    rationale: str = Field(min_length=1, max_length=4_000)
+
+    @field_validator("concerns")
+    @classmethod
+    def validate_concerns(cls, values: list[str]) -> list[str]:
+        cleaned = [value.strip() for value in values]
+        if any(not value or len(value) > 200 for value in cleaned):
+            raise ValueError("concerns must contain between 1 and 200 characters")
+        return cleaned
+
+
+class AdversarialReviewResult(BaseModel):
+    tier: ReviewTier
+    advocate: ReviewerReport | None = None
+    critic: ReviewerReport | None = None
+    outcome: Literal["accepted", "rejected", "escalated"]
+    requires_human_review: bool
+    merged: bool = False
+    reason: str
 
 
 class IngestResult(BaseModel):
     document: ProcessedDocument
     publish: PublishResult
+    review: AdversarialReviewResult | None = None
 
 
 class IndexTriggerRequest(BaseModel):

@@ -73,6 +73,7 @@ def build_publish_plan(
         pr_title=f"[{doc.type}] {doc.title}",
         pr_body=(
             f"**Type:** {doc.type}\n"
+            f"**Review tier:** {doc.review_tier}\n"
             f"**Owner:** {doc.owner}\n"
             f"**Summary:** {doc.summary}"
             f"{duplicate_note}\n\n"

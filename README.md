@@ -6,9 +6,10 @@
 
 Mnemosyne is an open-source, AI-assisted document ingestion engine. It
 classifies source material using the [Diátaxis framework](https://diataxis.fr),
-improves its structure and metadata, and opens a pull request for human review.
-It never merges generated content. Generated content is always opened as a draft
-PR for review.
+improves its structure and metadata, and opens a pull request for adversarial
+review. Two models from different provider families review every contribution.
+Unanimously accepted Tier 1 content may merge automatically; disagreement,
+reviewer failure, and all Tier 2 governance content require human approval.
 
 The project contains:
 
@@ -129,15 +130,24 @@ Set `LLM_PROVIDER` to one of:
 - `anthropic`
 - `openai`
 - `deepseek`
+- `xai`
+- `gemini`
 - `ollama`
 
 OpenAI-compatible endpoints can be selected using `OPENAI_BASE_URL`. Provider
 and operational settings are documented in
 [configuration.md](docs/configuration.md).
 
+Adversarial review uses `REVIEWER_ADVOCATE_PROVIDER` and
+`REVIEWER_CRITIC_PROVIDER`. They must name different provider families and
+reuse the corresponding provider credentials and model configuration.
+
 ## Governance and safety
 
 - Generated content can only be published to a feature branch and pull request.
+- Every published contribution receives cross-family adversarial review. Only
+  unanimous Tier 1 acceptance can trigger an automatic squash merge; all Tier 2
+  contributions and uncertain outcomes remain human-gated.
 - Preview output can be edited and then submitted verbatim through
   `/api/v1/publish`.
 - Inputs and generated outputs are validated and size-limited.
@@ -151,8 +161,9 @@ and operational settings are documented in
   processing; likely-duplicate matches are surfaced in the PR body for the
   human reviewer to weigh.
 
-Repository branch protection must still require human approval and prevent the
-Mnemosyne service account from merging.
+Repository rules and CODEOWNERS must require human approval for Tier 2 paths.
+The service account needs permission to comment on PRs and merge eligible Tier 1
+PRs, but those repository rules must prevent it from bypassing Tier 2 approval.
 
 ## Development
 

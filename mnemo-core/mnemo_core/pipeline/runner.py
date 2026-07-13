@@ -10,6 +10,7 @@ from . import ProcessingError, PublishError
 from .classify import classify_augment_format
 from .dedup import DuplicateChecker
 from .publish import Publisher
+from .review import AdversarialReviewer
 from .templates import TemplateSet
 
 logger = logging.getLogger(__name__)
@@ -23,12 +24,14 @@ class PipelineRunner:
         dedup: DuplicateChecker | None = None,
         timeout_seconds: float = 120,
         templates: TemplateSet | None = None,
+        reviewer: AdversarialReviewer | None = None,
     ) -> None:
         self._llm = llm
         self._publisher = publisher
         self._dedup = dedup
         self._timeout_seconds = timeout_seconds
         self._templates = templates if templates is not None else TemplateSet([])
+        self._reviewer = reviewer
         meter = metrics.get_meter("mnemo-core.pipeline")
         self._operations = meter.create_counter(
             "mnemo.pipeline.operations",
@@ -69,6 +72,9 @@ class PipelineRunner:
         try:
             async with asyncio.timeout(self._timeout_seconds):
                 result = await self._publisher.publish(doc)
+                if self._reviewer is not None:
+                    review = await self._reviewer.review(doc, result)
+                    result = result.model_copy(update={"review": review})
             self._record("publish", "succeeded", started)
             return result
         except TimeoutError as e:
@@ -82,7 +88,7 @@ class PipelineRunner:
         """Full pipeline: process then publish."""
         processed = await self.process(doc)
         result = await self.publish(processed)
-        return IngestResult(document=processed, publish=result)
+        return IngestResult(document=processed, publish=result, review=result.review)
 
     def _record(self, operation: str, status: str, started: float) -> None:
         attributes = {"operation": operation, "status": status}

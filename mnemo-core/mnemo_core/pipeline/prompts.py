@@ -16,6 +16,10 @@ _PROMPT_INTRO = """You are a technical documentation specialist working with the
 Given raw content, produce a structured JSON object with these exact fields:
 - title: string — concise, imperative or noun-phrase title
 - type: one of "tutorial", "how-to", "reference", "explanation"
+- review_tier: one of "tier-1", "tier-2" — this is independent of type. Use "tier-2"
+  for governance or constitutional content that defines or changes the change process,
+  including ADRs, pipeline configuration, review policy, trust tiers, enforcement rules,
+  and rules that determine tier membership. Use "tier-1" for ordinary factual content.
 {sub_label_field}
 - status: one of "draft", "proposed", "accepted", "modified", "superseded" — default to "draft"
 - tags: array of 3-6 lowercase kebab-case strings

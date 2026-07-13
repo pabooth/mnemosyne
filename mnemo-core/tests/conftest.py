@@ -29,6 +29,7 @@ SAMPLE_TEMPLATES = TemplateSet(
 VALID_PROCESSED_JSON = {
     "title": "Deploy the app",
     "type": "how-to",
+    "review_tier": "tier-1",
     "sub_label": "procedure",
     "status": "draft",
     "tags": ["deploy", "ops"],

@@ -5,9 +5,9 @@
 | Variable | Purpose |
 |---|---|
 | `MNEMO_API_TOKEN` | Shared administrator token |
-| `GITHUB_TOKEN` | Token used to create branches, files, and pull requests |
+| `GITHUB_TOKEN` | Token used to create branches, files, pull requests, review comments, and eligible Tier 1 merges |
 | `GITHUB_REPO` | Target repository in `owner/repository` form |
-| `LLM_PROVIDER` | `anthropic`, `openai`, `deepseek`, or `ollama` |
+| `LLM_PROVIDER` | `anthropic`, `openai`, `deepseek`, `xai`, `gemini`, or `ollama` |
 
 Use `MNEMO_API_TOKENS` for named identities:
 
@@ -38,7 +38,23 @@ The GitHub webhook route is also under `/api/v1`, but it uses the
 | Anthropic | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` |
 | OpenAI-compatible | `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL` |
 | DeepSeek | `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL` |
+| xAI / Grok | `XAI_API_KEY`, `XAI_BASE_URL`, `XAI_MODEL` |
+| Google Gemini | `GEMINI_API_KEY`, `GEMINI_BASE_URL`, `GEMINI_MODEL` |
 | Ollama | `OLLAMA_BASE_URL`, `OLLAMA_MODEL` |
+
+## Adversarial review (ADR-011)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `REVIEWER_ADVOCATE_PROVIDER` | `anthropic` | Provider family instructed to build the acceptance case |
+| `REVIEWER_CRITIC_PROVIDER` | `openai` | Provider family instructed to hunt for rejection reasons |
+
+The two values must name different supported provider families. Reviewer slots
+reuse the API credentials, endpoint, and model configured for that provider.
+Every `/ingest` and `/publish` operation records the structured outcome in a PR
+comment. Reviewer disagreement, invalid output, or unavailability escalates to
+human review. Tier 2 always requires human approval. Only unanimous Tier 1
+acceptance attempts an automatic squash merge.
 
 ## Document templates and taxonomy (ADR-018)
 
@@ -79,11 +95,12 @@ starts with an empty taxonomy and logs a warning. Restart mnemo-core to
 pick up merged template changes. Template files are never indexed by
 the vector index or scanned by the curator.
 
-Because templates program the classifier, guard the directory with the
-same controls the KB's protected branch already requires (ADR-005):
+Because templates program the classifier, they are Tier 2 governance content.
+Guard the directory with protected-branch rules and CODEOWNERS:
 changes arrive only by pull request with passing checks and at least
 one human approval, a CODEOWNERS rule names who that approver must be,
-and the Mnemosyne service account's token must not be able to merge:
+and rules must prevent the Mnemosyne service account from satisfying or
+bypassing that human approval requirement:
 
 ```text
 /templates/  @your-kb-maintainers

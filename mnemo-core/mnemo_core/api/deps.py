@@ -5,12 +5,25 @@ from ..embeddings.factory import get_embedding_provider
 from ..indexing.github import GitHubContentSource
 from ..indexing.service import Indexer
 from ..llm.base import LLMProvider
-from ..llm.factory import get_provider
+from ..llm.factory import get_provider, get_provider_for
 from ..pipeline.dedup import DuplicateChecker
 from ..pipeline.publish import GitHubPublisher, Publisher
+from ..pipeline.review import AdversarialReviewer, GitHubReviewAuditSink
 from ..pipeline.runner import PipelineRunner
 from ..pipeline.templates import TemplateSet, get_template_set
 from ..vector.factory import get_vector_index
+
+
+class _DeferredProvider(LLMProvider):
+    """Delay credential validation until the reviewer is actually invoked."""
+
+    def __init__(self, family: str, cfg: Settings) -> None:
+        self._family = family
+        self._cfg = cfg
+
+    async def complete(self, system: str, user: str, max_tokens: int = 4000) -> str:
+        provider = get_provider_for(self._family, self._cfg)
+        return await provider.complete(system, user, max_tokens)
 
 
 def build_runner(
@@ -18,6 +31,7 @@ def build_runner(
     publisher: Publisher | None = None,
     llm: LLMProvider | None = None,
     dedup: DuplicateChecker | None = None,
+    reviewer: AdversarialReviewer | None = None,
 ) -> PipelineRunner:
     cfg = get_settings() if cfg is None else cfg
     if publisher is None:
@@ -36,6 +50,18 @@ def build_runner(
         dedup=dedup,
         timeout_seconds=cfg.request_timeout_seconds,
         templates=get_template_set(),
+        reviewer=reviewer,
+    )
+
+
+def build_adversarial_reviewer(cfg: Settings | None = None) -> AdversarialReviewer:
+    cfg = get_settings() if cfg is None else cfg
+    return AdversarialReviewer(
+        _DeferredProvider(cfg.reviewer_advocate_provider, cfg),
+        _DeferredProvider(cfg.reviewer_critic_provider, cfg),
+        advocate_family=cfg.reviewer_advocate_provider,
+        critic_family=cfg.reviewer_critic_provider,
+        audit_sink=GitHubReviewAuditSink(cfg.github_token, cfg.github_repo),
     )
 
 
@@ -49,6 +75,10 @@ def get_publisher(cfg: Settings = Depends(get_settings)) -> Publisher:
 
 def get_llm(cfg: Settings = Depends(get_settings)) -> LLMProvider:
     return get_provider(cfg)
+
+
+def get_reviewer(cfg: Settings = Depends(get_settings)) -> AdversarialReviewer:
+    return build_adversarial_reviewer(cfg)
 
 
 def build_dedup_checker(cfg: Settings | None = None) -> DuplicateChecker:
@@ -73,6 +103,7 @@ def get_runner(
     dedup: DuplicateChecker | None = Depends(get_dedup_checker),
     cfg: Settings = Depends(get_settings),
     templates: TemplateSet = Depends(get_template_set),
+    reviewer: AdversarialReviewer = Depends(get_reviewer),
 ) -> PipelineRunner:
     return PipelineRunner(
         llm,
@@ -80,6 +111,7 @@ def get_runner(
         dedup=dedup,
         timeout_seconds=cfg.request_timeout_seconds,
         templates=templates,
+        reviewer=reviewer,
     )
 
 
