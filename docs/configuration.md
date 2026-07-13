@@ -203,15 +203,24 @@ snapshot itself is atomic; unlike `cp`/`tar`/`rsync`, it captures the `.db`,
 
 ```bash
 docker compose stop core
-cp "$MNEMO_HOME"/data/mnemo-core/*.db "$BACKUP_DIR/"
+cp "$MNEMO_HOME"/data/mnemo-core/*.db* "$BACKUP_DIR/"
 docker compose start core
 ```
+
+The `*.db*` glob deliberately includes any `-wal`/`-shm` siblings: a clean
+shutdown checkpoints and removes them, but a container that hit the stop
+timeout may leave recent commits in the `-wal` file, and copying only the
+`.db` would silently lose them.
 
 Verify every backup immediately, before trusting it:
 
 ```bash
 sqlite3 "$BACKUP_DIR/state.db" "PRAGMA integrity_check;"
 ```
+
+Verification also finalises the backup: opening the file makes SQLite
+recover and merge any copied `-wal` sibling into the `.db`, so after a
+passing `integrity_check` the `.db` alone is the complete backup.
 
 **Restore**: stop the service, replace the live files with verified
 backups, delete any stale `-wal`/`-shm` files (they reference offsets in
