@@ -14,6 +14,8 @@ from mnemo_core.llm.openai_compat import OpenAICompatProvider
         (Settings(llm_provider="anthropic", anthropic_api_key="test"), AnthropicProvider),
         (Settings(llm_provider="openai", openai_api_key="test"), OpenAICompatProvider),
         (Settings(llm_provider="deepseek", deepseek_api_key="test"), OpenAICompatProvider),
+        (Settings(llm_provider="xai", xai_api_key="test"), OpenAICompatProvider),
+        (Settings(llm_provider="gemini", gemini_api_key="test"), OpenAICompatProvider),
         (Settings(llm_provider="ollama"), OllamaProvider),
     ],
 )

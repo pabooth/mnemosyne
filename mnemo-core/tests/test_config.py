@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from mnemo_core.config import Settings
 
 
@@ -22,3 +25,20 @@ def test_explicit_db_paths_override_defaults(monkeypatch):
 def test_explicit_empty_vector_db_path_opts_in_to_sharing():
     settings = Settings(_env_file=None, vector_db_path="")
     assert settings.vector_db_path == ""
+
+
+def test_reviewer_provider_families_must_differ():
+    with pytest.raises(ValidationError, match="different families"):
+        Settings(
+            _env_file=None,
+            reviewer_advocate_provider="openai",
+            reviewer_critic_provider="OPENAI",
+        )
+
+
+def test_xai_and_gemini_defaults():
+    settings = Settings(_env_file=None)
+    assert settings.xai_base_url == "https://api.x.ai/v1"
+    assert settings.xai_model == "grok-4.5"
+    assert settings.gemini_base_url == "https://generativelanguage.googleapis.com/v1beta/openai/"
+    assert settings.gemini_model == "gemini-3.5-flash"

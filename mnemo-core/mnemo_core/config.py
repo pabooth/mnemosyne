@@ -1,3 +1,4 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _settings_override: "Settings | None" = None
@@ -23,9 +24,24 @@ class Settings(BaseSettings):
     deepseek_api_key: str = ""
     deepseek_model: str = "deepseek-chat"
 
+    # xAI (OpenAI-compatible API)
+    xai_api_key: str = ""
+    xai_base_url: str = "https://api.x.ai/v1"
+    xai_model: str = "grok-4.5"
+
+    # Google Gemini (OpenAI-compatible API)
+    gemini_api_key: str = ""
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    gemini_model: str = "gemini-3.5-flash"
+
     # Ollama (no API key — served via OpenAI-compat endpoint)
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.2"
+
+    # ADR-011 adversarial reviewer slots. These must be distinct provider
+    # families; model names and credentials use the provider settings above.
+    reviewer_advocate_provider: str = "anthropic"
+    reviewer_critic_provider: str = "openai"
 
     # GitHub — required for the internal publish step used by ingest
     github_token: str = ""
@@ -86,6 +102,12 @@ class Settings(BaseSettings):
     dedup_enabled: bool = False
     dedup_max_distance: float = 0.35
     dedup_top_k: int = 3
+
+    @model_validator(mode="after")
+    def reviewer_families_must_differ(self) -> "Settings":
+        if self.reviewer_advocate_provider.strip().lower() == self.reviewer_critic_provider.strip().lower():
+            raise ValueError("adversarial reviewer providers must use different families")
+        return self
 
 
 def get_settings() -> Settings:

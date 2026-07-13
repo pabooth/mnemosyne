@@ -8,11 +8,13 @@ where to find source-of-truth context.
 
 Mnemosyne is an AI-assisted document ingestion engine. It classifies source
 material with the Diataxis framework, improves structure and metadata, and
-opens a pull request for human review.
+opens a pull request for review.
 
-Generated content must never be merged automatically. All paths that publish
-content must create a branch and pull request for human review. This is a hard
-governance requirement, not a configuration option.
+All paths that publish content must create a branch and pull request. Review
+follows the tiered model in ADR-011: Tier 1 content may be approved and merged
+without human sign-off only when both cross-family adversarial reviewers agree
+to accept; disagreement or reviewer unavailability requires human review.
+Tier 2 governance and constitutional content always requires human approval.
 
 Diataxis document type and review tier are separate axes:
 
@@ -32,9 +34,9 @@ deployment boundaries, MCP behavior, or review policy. ADRs live in
 
 Key ADRs:
 
-- ADR-005: mandatory human review before content reaches the knowledge base.
+- ADR-005: superseded initial human-review governance model.
 - ADR-006 and ADR-008: MCP is an intake interface only.
-- ADR-011: review tier model.
+- ADR-011: authoritative tiered adversarial-review and approval model.
 - ADR-012: deployment boundaries and service ownership.
 - ADR-013: API contract-first design and URI-path versioning.
 - ADR-017: instance directory — deployment state under `MNEMO_HOME`.
