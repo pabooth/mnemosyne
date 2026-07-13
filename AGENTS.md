@@ -19,6 +19,11 @@ Diataxis document type and review tier are separate axes:
 - Diataxis controls document shape: tutorial, how-to, reference, explanation.
 - Review tier controls review depth and risk handling.
 
+The sub-label taxonomy and document templates are knowledge-base content,
+not code (ADR-018): they live in the KB repo's `templates/` directory and
+are fetched once at startup. Never reintroduce templates or sub-label
+lists into `mnemo-core` source.
+
 ## Source of truth
 
 Read the relevant ADR before changing architecture, API contracts, governance,
@@ -32,6 +37,8 @@ Key ADRs:
 - ADR-011: review tier model.
 - ADR-012: deployment boundaries and service ownership.
 - ADR-013: API contract-first design and URI-path versioning.
+- ADR-017: instance directory — deployment state under `MNEMO_HOME`.
+- ADR-018: KB-owned templates define the sub-label taxonomy.
 
 ## Current architecture
 

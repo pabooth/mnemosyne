@@ -7,6 +7,24 @@ from mnemo_core.embeddings.base import EmbeddingProvider
 from mnemo_core.llm.base import LLMProvider
 from mnemo_core.models import DocumentInput, ProcessedDocument, PublishResult
 from mnemo_core.pipeline.publish import Publisher
+from mnemo_core.pipeline.templates import Template, TemplateSet, configure_template_set
+
+SAMPLE_TEMPLATES = TemplateSet(
+    [
+        Template(
+            type="reference",
+            sub_label="standard",
+            description="Rules the organisation mandates, with RFC 2119 language.",
+            body="## Introduction\n\n## Policies\n\n## Review",
+        ),
+        Template(
+            type="how-to",
+            sub_label="procedure",
+            description="Step-by-step instructions for an operational task.",
+            body="## Goal\n\n## Steps\n\n## Verification",
+        ),
+    ]
+)
 
 VALID_PROCESSED_JSON = {
     "title": "Deploy the app",
@@ -25,8 +43,12 @@ VALID_PROCESSED_JSON = {
 @pytest.fixture(autouse=True)
 def reset_settings():
     configure_settings(None)
+    # ADR-018: templates are fetched from GitHub on first use; tests must
+    # never reach the network, so pin a sample set for every test.
+    configure_template_set(SAMPLE_TEMPLATES)
     yield
     configure_settings(None)
+    configure_template_set(None)
 
 
 @pytest.fixture

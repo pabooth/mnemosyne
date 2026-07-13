@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+- KB-owned document templates (ADR-018): templates live in the knowledge
+  base's `templates/<type>/<sub-label>.md` files and are fetched once at
+  startup; the template set defines the sub-label taxonomy, so adding a
+  document type is a PR to the KB, not a Mnemosyne release. A template's
+  frontmatter `description` feeds the classifier prompt verbatim. Starter
+  templates live in `examples/templates/`; the previously built-in
+  "standard" template moved there, and Mnemosyne now ships none embedded.
+  Template fetch failures are fatal at startup by design; template files
+  are excluded from indexing and curator scans.
+
 ## [2.1.0] - 2026-07-13
 Multiple changes made to config and runtime issues
 

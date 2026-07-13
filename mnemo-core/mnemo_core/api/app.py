@@ -8,6 +8,7 @@ from ..mcp.server import create_mcp_asgi
 from ..observability.logging import setup_logging
 from ..observability.telemetry import setup_telemetry
 from ..pipeline.runner import PipelineRunner
+from ..pipeline.templates import get_template_set
 from .audit import AuditMiddleware
 from .auth import require_admin, require_api_token
 from .deps import build_runner
@@ -33,6 +34,11 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
         retry_base_seconds=app.state.settings.job_retry_base_seconds,
     )
     setup_logging(app.state.settings.log_level)
+
+    # ADR-018: fetch the KB's template set (and with it the sub-label
+    # taxonomy) once at startup. A fetch failure raises and stops the
+    # service — fail-stop by design, supervised by the restart policy.
+    app.state.template_set = get_template_set()
 
     app.add_middleware(
         CORSMiddleware,

@@ -40,6 +40,49 @@ The GitHub webhook route is also under `/api/v1`, but it uses the
 | DeepSeek | `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL` |
 | Ollama | `OLLAMA_BASE_URL`, `OLLAMA_MODEL` |
 
+## Document templates and taxonomy (ADR-018)
+
+Document templates live in the knowledge-base repository, not in
+Mnemosyne, in a `templates/` directory beside the Diataxis content
+folders (under `DOCS_ROOT` when set):
+
+```
+templates/
+├── reference/
+│   └── standard.md      # sub-label "standard" of type "reference"
+└── how-to/
+    └── runbook.md       # sub-label "runbook" of type "how-to"
+```
+
+The template set **is** the sub-label taxonomy: the directory names the
+Diataxis type, the filename names the sub-label, and the classifier
+prompt is assembled from the set at startup. The four Diataxis types
+themselves are fixed (ADR-003). A KB with no `templates/` directory has
+an empty taxonomy — documents classify to bare types with no sub-label.
+
+Each template is Markdown with a frontmatter `description`. The
+description is included in the classifier prompt verbatim — it defines
+when a document counts as that sub-type, so write it as deliberately as
+the body. The body is the section skeleton used when a submission hints
+that type and sub-label.
+
+mnemo-core fetches the set once at startup using `GITHUB_TOKEN` /
+`GITHUB_REPO`. Any fetch failure — bad credentials, wrong repository,
+network, or a malformed template file — is fatal: the service logs the
+cause and exits, and the container restart policy retries. Restart
+mnemo-core to pick up merged template changes. Template files are never
+indexed by the vector index or scanned by the curator.
+
+Protect the directory with branch protection plus a CODEOWNERS rule in
+the KB repository:
+
+```
+/templates/  @your-kb-maintainers
+```
+
+Starter templates to copy into a KB live in `examples/templates/` in the
+Mnemosyne repository; Mnemosyne itself ships none built in.
+
 ## Vector index and embeddings (ADR-014)
 
 `POST /api/v1/index/trigger` and `POST /api/v1/index/reconcile` embed

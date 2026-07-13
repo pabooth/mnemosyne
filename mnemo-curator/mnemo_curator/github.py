@@ -35,6 +35,7 @@ class GitHubClient:
                 if item.get("type") == "blob"
                 and item["path"].lower().endswith((".md", ".markdown"))
                 and self._inside_docs_root(item["path"])
+                and not self._is_template(item["path"])
             ][: self.settings.curator_max_files]
 
             documents: list[Document] = []
@@ -59,6 +60,12 @@ class GitHubClient:
     def _inside_docs_root(self, path: str) -> bool:
         root = self.settings.docs_root.strip("/")
         return not root or path.startswith(f"{root}/")
+
+    def _is_template(self, path: str) -> bool:
+        # templates/ holds document-type definitions, not content (ADR-018)
+        root = self.settings.docs_root.strip("/")
+        prefix = f"{root}/templates/" if root else "templates/"
+        return path.startswith(prefix)
 
     def _headers(self, accept: str) -> dict[str, str]:
         return {

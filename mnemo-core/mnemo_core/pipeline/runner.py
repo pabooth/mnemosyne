@@ -10,6 +10,7 @@ from . import ProcessingError, PublishError
 from .classify import classify_augment_format
 from .dedup import DuplicateChecker
 from .publish import Publisher
+from .templates import TemplateSet
 
 logger = logging.getLogger(__name__)
 
@@ -21,11 +22,13 @@ class PipelineRunner:
         publisher: Publisher,
         dedup: DuplicateChecker | None = None,
         timeout_seconds: float = 120,
+        templates: TemplateSet | None = None,
     ) -> None:
         self._llm = llm
         self._publisher = publisher
         self._dedup = dedup
         self._timeout_seconds = timeout_seconds
+        self._templates = templates if templates is not None else TemplateSet([])
         meter = metrics.get_meter("mnemo-core.pipeline")
         self._operations = meter.create_counter(
             "mnemo.pipeline.operations",
@@ -42,7 +45,7 @@ class PipelineRunner:
         started = time.perf_counter()
         try:
             async with asyncio.timeout(self._timeout_seconds):
-                result = await classify_augment_format(doc, self._llm)
+                result = await classify_augment_format(doc, self._llm, self._templates)
         except TimeoutError as e:
             self._record("process", "timed_out", started)
             raise ProcessingError("LLM processing timed out") from e

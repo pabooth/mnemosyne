@@ -1,72 +1,22 @@
+"""Classifier prompt assembly (ADR-003, ADR-018).
+
+The four Diataxis types and their classification rules are fixed here.
+The sub-label taxonomy is not: it is assembled from the knowledge base's
+own template set, so each KB defines its own document types and the
+descriptions its curators wrote are, verbatim, what the classifier knows
+about them.
+"""
+
 from datetime import date
 
 from ..models import DocumentInput
+from .templates import Template, TemplateSet
 
-STANDARD_TEMPLATE = """
-## Introduction
-
-Why this standard exists and what problem it solves.
-
-## Scope
-
-Who and what this standard applies to. Explicitly state any exclusions.
-
-## Policies
-
-The rules of this standard. Use RFC 2119 language throughout:
-- MUST / MUST NOT — mandatory, non-negotiable
-- SHOULD / SHOULD NOT — strongly recommended, exceptions require justification
-- MAY — optional, permitted but not required
-
-## Compliance
-
-How compliance is measured or assured. Who is responsible for compliance.
-What happens when compliance is not met.
-
-## Technology
-
-Technology that supports or is required for compliance with this standard.
-May also describe technology this standard applies to.
-
-## Exceptions
-
-The process for requesting an exception to this standard.
-Who reviews and approves exceptions. How exceptions are documented.
-
-## Related processes and how-tos
-
-Direct links to actionable documents that implement this standard.
-
-## Related documents and internal references
-
-Further reading. Related standards, principles, policies, or external references.
-
-## Dependencies
-
-What this standard depends on — other standards, principles, external regulations,
-or organisational decisions that underpin it.
-
-## Review
-
-Review cycle, next review date, and owner responsible for review.
-
-## Change log
-
-| Version | Date | Author | Change |
-|---------|------|--------|--------|
-| 0.1 | | | Initial draft |
-"""
-
-TEMPLATES: dict[tuple[str, str], str] = {
-    ("reference", "standard"): STANDARD_TEMPLATE,
-}
-
-SYSTEM_PROMPT = """You are a technical documentation specialist working with the Diataxis framework.
+_PROMPT_INTRO = """You are a technical documentation specialist working with the Diataxis framework.
 Given raw content, produce a structured JSON object with these exact fields:
 - title: string — concise, imperative or noun-phrase title
 - type: one of "tutorial", "how-to", "reference", "explanation"
-- sub_label: one of "standard", "principle", "policy", "glossary", "process", "procedure",
-  "runbook", "onboarding", "learning-path", "architecture", "adr", "requirements", "strategy" or "" if none applies
+{sub_label_field}
 - status: one of "draft", "proposed", "accepted", "modified", "superseded" — default to "draft"
 - tags: array of 3-6 lowercase kebab-case strings
 - summary: string — one sentence, under 160 chars
@@ -85,38 +35,72 @@ how-to: task-oriented. Practical steps to achieve a specific goal. Assumes compe
 
 reference: information-oriented. Factual, accurate, consulted not read end-to-end.
   Examples: standards, principles, policies, API docs, configuration options, glossaries.
-  Sub-labels: standard, principle, policy, glossary.
 
 explanation: understanding-oriented. Discusses concepts, rationale, context, decisions.
   Examples: requirements documents, architecture documents, design decisions, background context,
   system overviews, governance frameworks, anything that answers "why" or "what is this".
-  Sub-labels: architecture, adr, requirements, strategy.
   Key signal: if the document describes a SYSTEM or PRODUCT rather than instructing a USER,
   it is explanation. Requirements and architecture documents are ALWAYS explanation.
-
-how-to sub-labels: process, procedure, runbook.
-tutorial sub-labels: onboarding, learning-path.
 
 Common misclassifications to avoid:
 - Requirements and architecture documents are EXPLANATION, not how-to or reference
 - Standards and principles are REFERENCE, not explanation
 - A document with numbered steps is not automatically a how-to — check whether it is
   instructing an end user to perform a task, or describing how a system works
-- Requirements documents are ALWAYS explanation, never reference or how-to
-- Architecture documents are ALWAYS explanation, never reference
-
+{sub_label_rules}
 If a template is provided in the user message, use it as the structure for the body.
 Populate each section with content derived from the raw input.
 Do not remove sections — if there is no content for a section, leave a brief placeholder.
 
 Return ONLY valid JSON, no other text."""
 
+_SUB_LABEL_FIELD_EMPTY = (
+    '- sub_label: always "" — this knowledge base defines no document sub-types'
+)
 
-def build_user_message(doc: DocumentInput, *, today: date | None = None) -> str:
+_SUB_LABEL_FIELD = (
+    '- sub_label: one of {names} or "" if none applies'
+)
+
+
+def _sub_label_rules(templates: TemplateSet) -> str:
+    if len(templates) == 0:
+        return ""
+    lines = [
+        "",
+        "This knowledge base defines the following document sub-types. Assign",
+        'sub_label by matching the descriptions below; use "" when none applies.',
+        "",
+    ]
+    for doc_type in ("tutorial", "how-to", "reference", "explanation"):
+        for template in templates.for_type(doc_type):
+            lines.append(f"{doc_type} / {template.sub_label}: {template.description}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def build_system_prompt(templates: TemplateSet) -> str:
+    if len(templates) == 0:
+        sub_label_field = _SUB_LABEL_FIELD_EMPTY
+    else:
+        names = ", ".join(f'"{name}"' for name in templates.sub_labels)
+        sub_label_field = _SUB_LABEL_FIELD.format(names=names)
+    return _PROMPT_INTRO.format(
+        sub_label_field=sub_label_field,
+        sub_label_rules=_sub_label_rules(templates),
+    )
+
+
+def build_user_message(
+    doc: DocumentInput,
+    template: Template | None = None,
+    *,
+    today: date | None = None,
+) -> str:
     today = today or date.today()
-    template_key = (doc.type, doc.sub_label) if doc.type and doc.sub_label else None
-    template = TEMPLATES.get(template_key, "")
-    template_block = f"\nUse this template for the body:\n{template}" if template else ""
+    template_block = (
+        f"\nUse this template for the body:\n{template.body}\n" if template else ""
+    )
 
     return f"""Today's date: {today.isoformat()}
 
