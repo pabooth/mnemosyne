@@ -56,12 +56,17 @@ class GitHubReviewAuditSink:
         response.raise_for_status()
         if result.tier != "tier-1" or result.outcome != "accepted" or result.requires_human_review:
             return False
-        response = await client.put(
-            f"/repos/{self._repo}/pulls/{number}/merge",
-            json={"merge_method": "squash"},
-        )
-        response.raise_for_status()
-        return bool(response.json().get("merged"))
+        try:
+            response = await client.put(
+                f"/repos/{self._repo}/pulls/{number}/merge",
+                json={"merge_method": "squash"},
+            )
+            response.raise_for_status()
+            return bool(response.json().get("merged"))
+        except httpx.HTTPError:
+            # The PR and its audit record already exist. Branch protection,
+            # conflicts, or transient GitHub failures leave it for a human.
+            return False
 
 
 class AdversarialReviewer:

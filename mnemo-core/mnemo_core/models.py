@@ -44,7 +44,9 @@ class ProcessedDocument(BaseModel):
 
     title: str = Field(min_length=1, max_length=200)
     type: DiataxisType
-    review_tier: ReviewTier
+    # Legacy records predate ADR-011. Missing classification must fail closed:
+    # Tier 2 preserves compatibility without allowing automatic merge.
+    review_tier: ReviewTier = "tier-2"
     sub_label: str = Field(default="", max_length=100, pattern=r"^[\w ./-]*$")
     status: Literal["draft", "review"] = "draft"
     tags: list[str] = Field(max_length=25)
@@ -78,6 +80,14 @@ class ReviewerReport(BaseModel):
     recommended_tier: ReviewTier
     concerns: list[str] = Field(default_factory=list, max_length=50)
     rationale: str = Field(min_length=1, max_length=4_000)
+
+    @field_validator("concerns")
+    @classmethod
+    def validate_concerns(cls, values: list[str]) -> list[str]:
+        cleaned = [value.strip() for value in values]
+        if any(not value or len(value) > 200 for value in cleaned):
+            raise ValueError("concerns must contain between 1 and 200 characters")
+        return cleaned
 
 
 class AdversarialReviewResult(BaseModel):

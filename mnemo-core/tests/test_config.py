@@ -36,6 +36,16 @@ def test_reviewer_provider_families_must_differ():
         )
 
 
+def test_reviewer_provider_families_are_normalized():
+    settings = Settings(
+        _env_file=None,
+        reviewer_advocate_provider=" Anthropic ",
+        reviewer_critic_provider="GEMINI",
+    )
+    assert settings.reviewer_advocate_provider == "anthropic"
+    assert settings.reviewer_critic_provider == "gemini"
+
+
 def test_xai_and_gemini_defaults():
     settings = Settings(_env_file=None)
     assert settings.xai_base_url == "https://api.x.ai/v1"

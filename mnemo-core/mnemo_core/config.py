@@ -105,7 +105,9 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def reviewer_families_must_differ(self) -> "Settings":
-        if self.reviewer_advocate_provider.strip().lower() == self.reviewer_critic_provider.strip().lower():
+        self.reviewer_advocate_provider = self.reviewer_advocate_provider.strip().lower()
+        self.reviewer_critic_provider = self.reviewer_critic_provider.strip().lower()
+        if self.reviewer_advocate_provider == self.reviewer_critic_provider:
             raise ValueError("adversarial reviewer providers must use different families")
         return self
 

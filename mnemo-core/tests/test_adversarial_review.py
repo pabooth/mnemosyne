@@ -3,7 +3,7 @@ import json
 import httpx
 import pytest
 
-from mnemo_core.models import AdversarialReviewResult, PublishResult
+from mnemo_core.models import AdversarialReviewResult, PublishResult, ReviewerReport
 from mnemo_core.pipeline.review import AdversarialReviewer, GitHubReviewAuditSink
 from tests.conftest import FakeLLM, processed_doc
 
@@ -98,6 +98,19 @@ def test_same_family_pair_is_rejected():
         )
 
 
+@pytest.mark.parametrize("concern", ["", "x" * 201])
+def test_reviewer_concerns_are_bounded(concern):
+    with pytest.raises(ValueError, match="concerns"):
+        ReviewerReport(
+            role="critic",
+            provider_family="openai",
+            verdict="reject",
+            recommended_tier="tier-1",
+            concerns=[concern],
+            rationale="A concern was found.",
+        )
+
+
 async def test_github_sink_comments_then_merges_accepted_tier_1():
     requests = []
 
@@ -144,3 +157,22 @@ async def test_github_sink_never_merges_tier_2():
         assert await sink.record(published(), result) is False
 
     assert [request.method for request in requests] == ["POST"]
+
+
+async def test_github_sink_treats_merge_refusal_as_not_merged():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "PUT":
+            return httpx.Response(409, json={"message": "Merge conflict"})
+        return httpx.Response(201, json={})
+
+    async with httpx.AsyncClient(
+        base_url="https://api.github.com", transport=httpx.MockTransport(handler)
+    ) as client:
+        sink = GitHubReviewAuditSink("token", "acme/kb", client)
+        result = AdversarialReviewResult(
+            tier="tier-1",
+            outcome="accepted",
+            requires_human_review=False,
+            reason="Both accepted.",
+        )
+        assert await sink.record(published(), result) is False
