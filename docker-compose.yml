@@ -58,6 +58,7 @@ services:
   ui:
     build:
       context: ./mnemo-ui
+    profiles: ["ui"]
     depends_on:
       core:
         condition: service_healthy
@@ -99,6 +100,7 @@ services:
   proxy:
     build:
       context: ./mnemo-proxy
+    profiles: ["ui"]
     depends_on:
       - ui
       - core
