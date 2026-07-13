@@ -49,7 +49,7 @@ is embedded and file-based, so no separate service is required.
 | Variable | Default | Purpose |
 |---|---|---|
 | `VECTOR_STORE` | `sqlite-vec` | Only `sqlite-vec` is currently supported |
-| `VECTOR_DB_PATH` | `./data/vectors.db` (bare-metal) / `/data/vectors.db` (Docker) | Its own file by default (ADR-015), separate from `STATE_DB_PATH`; not set in `.env.example` because Docker Compose hardcodes the container path directly, like `STATE_DB_PATH` |
+| `VECTOR_DB_PATH` | `./data/mnemo-core/vectors.db` (bare-metal) / `/data/vectors.db` (Docker) | Its own file by default (ADR-015), separate from `STATE_DB_PATH`; not set in `mnemosyne.env.example` because Docker Compose hardcodes the container path directly, like `STATE_DB_PATH` |
 | `VECTOR_EMBEDDING_DIM` | `1536` | Must match the active embedding model's output size |
 | `EMBEDDING_PROVIDER` | `openai` | `openai` or `ollama` |
 | `EMBEDDING_OPENAI_MODEL` | `text-embedding-3-small` | Uses `OPENAI_API_KEY`/`OPENAI_BASE_URL` |
@@ -57,10 +57,10 @@ is embedded and file-based, so no separate service is required.
 | `INDEX_MAX_FILES` | `2000` | Cap on files walked during a reconciliation pass |
 
 Set `VECTOR_DB_PATH=""` explicitly to share the same file as `STATE_DB_PATH`
-instead of a separate one. Do not set `VECTOR_DB_PATH` in a Docker Compose
-`.env` file to a relative path — it would override the container's hardcoded
-`/data/vectors.db` with a path relative to the container's working directory
-rather than the bind-mounted data directory.
+instead of a separate one. Do not set `VECTOR_DB_PATH` in
+`$MNEMO_HOME/mnemosyne.env` to a relative path — it would override the
+container's hardcoded `/data/vectors.db` with a path relative to the
+container's working directory rather than the bind-mounted data directory.
 
 `EMBEDDING_PROVIDER` is independent from `LLM_PROVIDER`: Anthropic and
 DeepSeek don't offer an embeddings API, so an OpenAI-compatible or Ollama
@@ -96,7 +96,7 @@ the default as-is.
 | `REQUEST_RATE_LIMIT_PER_MINUTE` | `30` |
 | `REQUEST_MAX_CONCURRENCY` | `4` |
 | `REQUEST_MAX_BODY_BYTES` | `2000000` |
-| `STATE_DB_PATH` | `./data/mnemosyne.db` |
+| `STATE_DB_PATH` | `./data/mnemo-core/state.db` |
 | `JOB_MAX_ATTEMPTS` | `2` |
 | `JOB_RETRY_BASE_SECONDS` | `1` |
 
@@ -134,20 +134,38 @@ strongly recommended for production. The selected identity must have write
 access to the directory containing `STATE_DB_PATH`; see the
 [Docker deployment guide](./deployment/docker-compose.md#runtime-user).
 
-## Persistence (ADR-015)
+## Persistence (ADR-015 / ADR-017)
 
-Data is bind-mounted to the host, not stored in anonymous Docker volumes.
-Each deployable gets its own subdirectory of one configurable parent:
+All instance state lives in one directory located by the `MNEMO_HOME`
+environment variable — conventionally `~/mnemosyne` on a development
+machine, `/srv/mnemosyne` on a Linux server:
 
-| Variable | Default (Compose) | Default (packaged) | Purpose |
-|---|---|---|---|
-| `MNEMO_DATA_DIR` | `./data` | `/var/lib/mnemosyne/data` | Parent directory; each service writes to `$MNEMO_DATA_DIR/<component>` |
+```
+$MNEMO_HOME/
+├── mnemosyne.env          # start-time configuration
+└── data/
+    ├── mnemo-core/        # state.db (jobs + audit), vectors.db (vector index)
+    └── mnemo-curator/     # issues.db (only when CURATOR_ISSUE_TRACKER=sqlite)
+```
 
-`mnemo-core` writes to `$MNEMO_DATA_DIR/mnemo-core` (`mnemosyne.db`,
-`vectors.db`); `mnemo-curator` writes to `$MNEMO_DATA_DIR/mnemo-curator`
-(`mnemo-curator-issues.db`, only when `CURATOR_ISSUE_TRACKER=sqlite`). The
-two are never shared, preserving the failure-domain separation between
-`mnemo-core` and `mnemo-curator` established in ADR-012.
+`MNEMO_HOME` is a deployment setting consumed by Docker Compose alone: it
+places the per-component bind mounts (`$MNEMO_HOME/data/<component>` onto
+each service's `/data`), and the Compose file hands each container an
+explicit container path (`STATE_DB_PATH=/data/state.db` and so on). The
+applications never read it. Compose fails with an instructive error if
+`MNEMO_HOME` is unset — there is deliberately no fallback into the source
+tree.
+
+For bare-metal (non-Docker) runs, the applications' own defaults follow
+the same per-component layout relative to the working directory
+(`./data/mnemo-core/state.db`, `./data/mnemo-core/vectors.db`,
+`./data/mnemo-curator/issues.db`) — run the process with `$MNEMO_HOME` as
+its working directory and state lands in the right place. The explicit
+`*_DB_PATH` variables override the defaults.
+
+The two components' data directories are never shared, preserving the
+failure-domain separation between `mnemo-core` and `mnemo-curator`
+established in ADR-012.
 
 All SQLite connections (jobs, vector index, curator's SQLite issue tracker)
 run in WAL mode.
@@ -155,6 +173,9 @@ run in WAL mode.
 Under a non-root `MNEMO_UID`/`MNEMO_GID`, create and `chown` each
 component's subdirectory before first run — see
 [Docker deployment guide](./deployment/docker-compose.md#runtime-user).
+If you are upgrading from a layout that predates ADR-015 (named Docker
+volumes, or database files directly in the data root), see
+[Migrating from earlier data layouts](./deployment/docker-compose.md#migrating-from-earlier-data-layouts).
 
 ### Backup and restore
 
@@ -168,13 +189,13 @@ time, producing a backup that looks fine and fails on restore. Use one of:
 WAL-mode database:
 
 ```bash
-sqlite3 "$MNEMO_DATA_DIR/mnemo-core/mnemosyne.db" ".backup '$BACKUP_DIR/mnemosyne.db'"
-sqlite3 "$MNEMO_DATA_DIR/mnemo-core/vectors.db" ".backup '$BACKUP_DIR/vectors.db'"
-sqlite3 "$MNEMO_DATA_DIR/mnemo-curator/mnemo-curator-issues.db" ".backup '$BACKUP_DIR/mnemo-curator-issues.db'"
+sqlite3 "$MNEMO_HOME/data/mnemo-core/state.db" ".backup '$BACKUP_DIR/state.db'"
+sqlite3 "$MNEMO_HOME/data/mnemo-core/vectors.db" ".backup '$BACKUP_DIR/vectors.db'"
+sqlite3 "$MNEMO_HOME/data/mnemo-curator/issues.db" ".backup '$BACKUP_DIR/issues.db'"
 ```
 
 **Coordinated filesystem snapshot** — an LVM, ZFS/btrfs, or cloud
-block-storage snapshot of `$MNEMO_DATA_DIR` is also safe, provided the
+block-storage snapshot of `$MNEMO_HOME/data` is also safe, provided the
 snapshot itself is atomic; unlike `cp`/`tar`/`rsync`, it captures the `.db`,
 `-wal`, and `-shm` files at exactly the same instant.
 
@@ -182,14 +203,14 @@ snapshot itself is atomic; unlike `cp`/`tar`/`rsync`, it captures the `.db`,
 
 ```bash
 docker compose stop core
-cp "$MNEMO_DATA_DIR"/mnemo-core/*.db "$BACKUP_DIR/"
+cp "$MNEMO_HOME"/data/mnemo-core/*.db "$BACKUP_DIR/"
 docker compose start core
 ```
 
 Verify every backup immediately, before trusting it:
 
 ```bash
-sqlite3 "$BACKUP_DIR/mnemosyne.db" "PRAGMA integrity_check;"
+sqlite3 "$BACKUP_DIR/state.db" "PRAGMA integrity_check;"
 ```
 
 **Restore**: stop the service, replace the live files with verified
@@ -199,9 +220,9 @@ the old file and are invalid against a restored one), run
 
 ```bash
 docker compose stop core
-cp "$BACKUP_DIR/mnemosyne.db" "$MNEMO_DATA_DIR/mnemo-core/mnemosyne.db"
-rm -f "$MNEMO_DATA_DIR"/mnemo-core/mnemosyne.db-wal "$MNEMO_DATA_DIR"/mnemo-core/mnemosyne.db-shm
-sqlite3 "$MNEMO_DATA_DIR/mnemo-core/mnemosyne.db" "PRAGMA integrity_check;"
+cp "$BACKUP_DIR/state.db" "$MNEMO_HOME/data/mnemo-core/state.db"
+rm -f "$MNEMO_HOME"/data/mnemo-core/state.db-wal "$MNEMO_HOME"/data/mnemo-core/state.db-shm
+sqlite3 "$MNEMO_HOME/data/mnemo-core/state.db" "PRAGMA integrity_check;"
 docker compose start core
 ```
 
@@ -249,7 +270,7 @@ through `mnemo-core`.
 | `CURATOR_DEFAULT_OWNER` | `unset` |
 | `CURATOR_ISSUE_TRACKER` | `github` |
 | `CURATOR_ISSUE_LABELS` | `mnemo-curator` |
-| `CURATOR_ISSUE_DB_PATH` | `./data/mnemo-curator-issues.db` |
+| `CURATOR_ISSUE_DB_PATH` | `./data/mnemo-curator/issues.db` |
 | `CURATOR_SEMANTIC_RESOLUTION_ENABLED` | `false` |
 
 Supported issue trackers:

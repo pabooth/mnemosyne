@@ -5,7 +5,7 @@ _settings_cache: "Settings | None" = None
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file="mnemosyne.env", extra="ignore")
 
     # LLM provider selection
     llm_provider: str = "anthropic"
@@ -42,7 +42,12 @@ class Settings(BaseSettings):
     request_rate_limit_per_minute: int = 30
     request_max_concurrency: int = 4
     request_max_body_bytes: int = 2_000_000
-    state_db_path: str = "./data/mnemosyne.db"
+    # Persistence layout (ADR-015/ADR-017): every component stores its
+    # state under its own subdirectory of the data directory. Docker
+    # deployments override these with container paths on the bind-mounted
+    # /data; bare-metal runs resolve them against the working directory,
+    # conventionally $MNEMO_HOME.
+    state_db_path: str = "./data/mnemo-core/state.db"
     job_max_attempts: int = 2
     job_retry_base_seconds: float = 1
 
@@ -63,7 +68,7 @@ class Settings(BaseSettings):
     # writes to state_db_path. Set to "" to explicitly share state_db_path
     # instead.
     vector_store: str = "sqlite-vec"
-    vector_db_path: str = "./data/vectors.db"
+    vector_db_path: str = "./data/mnemo-core/vectors.db"
     vector_embedding_dim: int = 1536
 
     # Embedding provider — independent from LLM_PROVIDER since not every
