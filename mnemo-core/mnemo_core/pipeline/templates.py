@@ -22,6 +22,13 @@ logger = logging.getLogger(__name__)
 GITHUB_API = "https://api.github.com"
 TEMPLATES_DIR = "templates"
 
+# Guardrails: descriptions are injected into every classification prompt
+# and the whole set is held in memory, so a runaway KB must fail loudly
+# rather than silently inflate prompts (project input-limits guideline).
+MAX_TEMPLATE_COUNT = 100
+MAX_TEMPLATE_BYTES = 65_536
+MAX_DESCRIPTION_CHARS = 500
+
 _FOLDER_TO_TYPE = {folder: doc_type for doc_type, folder in DIATAXIS_FOLDERS.items()}
 
 _FRONTMATTER = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -43,7 +50,15 @@ class Template:
 class TemplateSet:
     def __init__(self, templates: list[Template]) -> None:
         self._templates = list(templates)
-        self._by_key = {(t.type, t.sub_label): t for t in self._templates}
+        self._by_key: dict[tuple[str, str], Template] = {}
+        for template in self._templates:
+            key = (template.type, template.sub_label)
+            if key in self._by_key:
+                raise TemplateFetchError(
+                    f"Duplicate template for {template.type}/{template.sub_label}; "
+                    "each (type, sub-label) pair must be defined exactly once"
+                )
+            self._by_key[key] = template
 
     def __len__(self) -> int:
         return len(self._templates)
@@ -97,6 +112,17 @@ def parse_template(path: str, content: str) -> Template:
             "description tells the classifier when this document type applies"
         )
     description = description_match.group(1).strip().strip("\"'")
+    if not description or description in ("|", ">", "|-", ">-", "|+", ">+"):
+        raise TemplateFetchError(
+            f"Template {path!r} has an empty or block-scalar 'description'; "
+            "write it as a single-line frontmatter value"
+        )
+    if len(description) > MAX_DESCRIPTION_CHARS:
+        raise TemplateFetchError(
+            f"Template {path!r} description exceeds {MAX_DESCRIPTION_CHARS} "
+            "characters; it is injected into every classification prompt, "
+            "so keep it a concise definition"
+        )
     body = content[frontmatter.end() :].strip("\n")
 
     return Template(type=doc_type, sub_label=sub_label, description=description, body=body)
@@ -148,6 +174,12 @@ def fetch_template_set(
                 and item["path"].startswith(prefix)
                 and item["path"].lower().endswith((".md", ".markdown"))
             ]
+            if len(paths) > MAX_TEMPLATE_COUNT:
+                raise TemplateFetchError(
+                    f"Knowledge base defines {len(paths)} templates; the limit "
+                    f"is {MAX_TEMPLATE_COUNT} because every description is "
+                    "injected into the classification prompt"
+                )
 
             templates = []
             for path, sha in paths:
@@ -158,7 +190,13 @@ def fetch_template_set(
                     raise TemplateFetchError(
                         f"Unexpected encoding {data.get('encoding')!r} for template {path}"
                     )
-                content = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
+                raw = base64.b64decode(data["content"])
+                if len(raw) > MAX_TEMPLATE_BYTES:
+                    raise TemplateFetchError(
+                        f"Template {path} is {len(raw)} bytes; the limit is "
+                        f"{MAX_TEMPLATE_BYTES} bytes"
+                    )
+                content = raw.decode("utf-8", errors="replace")
                 templates.append(parse_template(path, content))
     except httpx.HTTPError as e:
         raise TemplateFetchError(f"Failed to fetch templates from {repo}: {e}") from e

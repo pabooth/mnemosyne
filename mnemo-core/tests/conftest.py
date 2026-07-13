@@ -72,10 +72,12 @@ class FakeLLM(LLMProvider):
         self.response = response
         self.last_system: str | None = None
         self.last_user: str | None = None
+        self.calls: list[tuple[str, str]] = []
 
     async def complete(self, system: str, user: str, max_tokens: int = 4000) -> str:
         self.last_system = system
         self.last_user = user
+        self.calls.append((system, user))
         return self.response
 
 

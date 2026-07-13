@@ -1,7 +1,7 @@
 # Example document templates
 
 Mnemosyne ships no built-in templates: your knowledge base's `templates/`
-directory is the whole truth about which document sub-types exist and what
+directory is the whole truth about which document subtypes exist and what
 they contain (ADR-018). These examples are starting points — copy the ones
 you want into your KB and edit them to match your conventions:
 
@@ -16,9 +16,11 @@ is one of the Diataxis content folders (`tutorials`, `how-to`, `reference`,
 when a document counts as this type, so write it as carefully as the
 template body.
 
-Guard the directory with branch protection and a CODEOWNERS rule:
+Guard the directory with the KB's existing branch protection (pull
+requests only, passing checks, at least one human approval, and the
+Mnemosyne service account unable to merge) plus a CODEOWNERS rule:
 
-```
+```text
 /templates/  @your-kb-maintainers
 ```
 

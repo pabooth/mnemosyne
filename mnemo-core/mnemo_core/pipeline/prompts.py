@@ -59,7 +59,9 @@ _SUB_LABEL_FIELD_EMPTY = (
 )
 
 _SUB_LABEL_FIELD = (
-    '- sub_label: one of {names} or "" if none applies'
+    "- sub_label: one of the sub-types listed below for the chosen type, "
+    'or "" if none applies — never pair a sub-type with a different type '
+    "than the one it is listed under"
 )
 
 
@@ -68,8 +70,9 @@ def _sub_label_rules(templates: TemplateSet) -> str:
         return ""
     lines = [
         "",
-        "This knowledge base defines the following document sub-types. Assign",
-        'sub_label by matching the descriptions below; use "" when none applies.',
+        "This knowledge base defines the following document sub-types, each",
+        "valid only for the type it is listed under. Assign sub_label by",
+        'matching the descriptions below; use "" when none applies.',
         "",
     ]
     for doc_type in ("tutorial", "how-to", "reference", "explanation"):
@@ -80,11 +83,7 @@ def _sub_label_rules(templates: TemplateSet) -> str:
 
 
 def build_system_prompt(templates: TemplateSet) -> str:
-    if len(templates) == 0:
-        sub_label_field = _SUB_LABEL_FIELD_EMPTY
-    else:
-        names = ", ".join(f'"{name}"' for name in templates.sub_labels)
-        sub_label_field = _SUB_LABEL_FIELD.format(names=names)
+    sub_label_field = _SUB_LABEL_FIELD_EMPTY if len(templates) == 0 else _SUB_LABEL_FIELD
     return _PROMPT_INTRO.format(
         sub_label_field=sub_label_field,
         sub_label_rules=_sub_label_rules(templates),

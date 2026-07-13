@@ -153,7 +153,7 @@ Each template file declares its sub-label (filename), its parent Diataxis type (
 4. mnemo-core fetches the template set once at startup. Any fetch failure — bad credentials, wrong repository, network — logs its cause and exits non-zero; the container restart policy supervises retries. There is no degraded mode.
 5. mnemo-core ships zero embedded templates. The current standard template moves to an `examples/templates/` directory in the Mnemosyne repository for operators to copy into their KB. What is in the KB is the whole truth.
 6. The indexer and curator exclude `templates/` from content walks; template files are never indexed, deduplicated against, or flagged by the curator.
-7. Template protection is delegated to GitHub: documented guidance is branch protection plus a CODEOWNERS rule on `/templates/`. Mnemosyne does not enforce this.
+7. Template protection is delegated to GitHub and must meet the repository's existing governance bar: template changes arrive only by pull request with passing checks and at least one human approval, a CODEOWNERS rule on `/templates/` names the required approvers, and the Mnemosyne service account must not be able to merge. Mnemosyne documents this; it does not enforce it.
 
 ---
 

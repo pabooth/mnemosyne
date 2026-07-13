@@ -6,6 +6,7 @@ import pytest
 from mnemo_core.indexing.github import GitHubContentSource
 from mnemo_core.pipeline.templates import (
     TemplateFetchError,
+    TemplateSet,
     fetch_template_set,
     parse_template,
 )
@@ -48,6 +49,37 @@ def test_parse_template_rejects_missing_description():
 def test_parse_template_rejects_missing_frontmatter():
     with pytest.raises(TemplateFetchError, match="frontmatter"):
         parse_template("templates/reference/standard.md", "## Just a body\n")
+
+
+def test_parse_template_rejects_block_scalar_description():
+    content = "---\ndescription: |\n  Multi-line\n  value\n---\n\n## Body\n"
+    with pytest.raises(TemplateFetchError, match="block-scalar"):
+        parse_template("templates/reference/standard.md", content)
+
+
+@pytest.mark.parametrize("indicator", ["|+", ">+"])
+def test_parse_template_rejects_keep_block_scalar_description(indicator):
+    content = f"---\ndescription: {indicator}\n  Multi-line\n---\n\n## Body\n"
+    with pytest.raises(TemplateFetchError, match="block-scalar"):
+        parse_template("templates/reference/standard.md", content)
+
+
+def test_parse_template_rejects_oversized_description():
+    content = f"---\ndescription: {'x' * 501}\n---\n\n## Body\n"
+    with pytest.raises(TemplateFetchError, match="500"):
+        parse_template("templates/reference/standard.md", content)
+
+
+def test_template_set_rejects_duplicate_type_sub_label_pairs():
+    duplicate = parse_template("templates/reference/standard.md", VALID_TEMPLATE)
+    with pytest.raises(TemplateFetchError, match="exactly once"):
+        TemplateSet([duplicate, duplicate])
+
+
+def test_template_set_unique_lookup_is_unchanged():
+    template = parse_template("templates/reference/standard.md", VALID_TEMPLATE)
+    templates = TemplateSet([template])
+    assert templates.get("reference", "standard") is template
 
 
 def _github_transport(tree_paths: dict[str, str], fail_tree: bool = False):
@@ -147,6 +179,22 @@ def test_fetch_template_set_raises_on_malformed_template():
         fetch_template_set("tok", "acme/kb", transport=transport)
 
 
+def test_fetch_template_set_rejects_too_many_templates():
+    paths = {
+        f"templates/reference/template-{index}.md": VALID_TEMPLATE
+        for index in range(101)
+    }
+    with pytest.raises(TemplateFetchError, match="101 templates"):
+        fetch_template_set("tok", "acme/kb", transport=_github_transport(paths))
+
+
+def test_fetch_template_set_rejects_oversized_blob():
+    oversized = VALID_TEMPLATE + ("x" * 65_536)
+    transport = _github_transport({"templates/reference/large.md": oversized})
+    with pytest.raises(TemplateFetchError, match="limit is 65536 bytes"):
+        fetch_template_set("tok", "acme/kb", transport=transport)
+
+
 def test_indexer_content_source_excludes_templates():
     source = GitHubContentSource(token="t", repo="acme/kb")
     assert source._is_template("templates/reference/standard.md")
@@ -157,3 +205,40 @@ def test_indexer_content_source_excludes_templates():
     assert not rooted._is_template("kb/docs/how-to/runbook.md")
     # a content folder that merely mentions templates is not excluded
     assert not rooted._is_template("templates/reference/standard.md")
+
+
+@pytest.mark.parametrize(
+    ("docs_root", "content_path", "template_path"),
+    [
+        ("", "reference/a.md", "templates/reference/standard.md"),
+        ("kb/docs", "kb/docs/reference/a.md", "kb/docs/templates/reference/standard.md"),
+    ],
+)
+async def test_indexer_list_documents_excludes_templates(
+    monkeypatch, docs_root, content_path, template_path
+):
+    tree = [
+        {"path": content_path, "sha": "content-sha", "type": "blob"},
+        {"path": template_path, "sha": "template-sha", "type": "blob"},
+    ]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if url.endswith("/repos/acme/kb"):
+            return httpx.Response(200, json={"default_branch": "main"})
+        if "/git/trees/" in url:
+            return httpx.Response(200, json={"truncated": False, "tree": tree})
+        if url.endswith("/git/blobs/content-sha"):
+            encoded = base64.b64encode(b"# Content").decode()
+            return httpx.Response(200, json={"encoding": "base64", "content": encoded})
+        pytest.fail(f"unexpected request: {url}")
+
+    real_async_client = httpx.AsyncClient
+
+    def mock_async_client(*args, **kwargs):
+        kwargs["transport"] = httpx.MockTransport(handler)
+        return real_async_client(*args, **kwargs)
+
+    monkeypatch.setattr(httpx, "AsyncClient", mock_async_client)
+    source = GitHubContentSource(token="t", repo="acme/kb", docs_root=docs_root)
+    assert await source.list_documents() == [(content_path, "# Content")]

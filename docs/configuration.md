@@ -46,7 +46,7 @@ Document templates live in the knowledge-base repository, not in
 Mnemosyne, in a `templates/` directory beside the Diataxis content
 folders (under `DOCS_ROOT` when set):
 
-```
+```text
 templates/
 ├── reference/
 │   └── standard.md      # sub-label "standard" of type "reference"
@@ -60,23 +60,32 @@ prompt is assembled from the set at startup. The four Diataxis types
 themselves are fixed (ADR-003). A KB with no `templates/` directory has
 an empty taxonomy — documents classify to bare types with no sub-label.
 
-Each template is Markdown with a frontmatter `description`. The
-description is included in the classifier prompt verbatim — it defines
-when a document counts as that sub-type, so write it as deliberately as
-the body. The body is the section skeleton used when a submission hints
-that type and sub-label.
+Each template is Markdown with a frontmatter `description` — a
+single-line value, at most 500 characters. After trimming surrounding
+whitespace and quotes, the description is included in the classifier
+prompt unchanged — it defines when a document counts as that sub-type,
+so write it as deliberately as the body. The body is the section
+skeleton used when a submission hints that type and sub-label. A
+knowledge base may define at most 100 templates of up to 64 KiB each;
+every `(type, sub-label)` pair must be defined exactly once.
 
 mnemo-core fetches the set once at startup using `GITHUB_TOKEN` /
 `GITHUB_REPO`. Any fetch failure — bad credentials, wrong repository,
 network, or a malformed template file — is fatal: the service logs the
-cause and exits, and the container restart policy retries. Restart
-mnemo-core to pick up merged template changes. Template files are never
-indexed by the vector index or scanned by the curator.
+cause and exits, and the container restart policy retries. If
+`GITHUB_TOKEN`/`GITHUB_REPO` are not configured at all (a preview-only
+deployment that never publishes), there is nothing to fetch: the service
+starts with an empty taxonomy and logs a warning. Restart mnemo-core to
+pick up merged template changes. Template files are never indexed by
+the vector index or scanned by the curator.
 
-Protect the directory with branch protection plus a CODEOWNERS rule in
-the KB repository:
+Because templates program the classifier, guard the directory with the
+same controls the KB's protected branch already requires (ADR-005):
+changes arrive only by pull request with passing checks and at least
+one human approval, a CODEOWNERS rule names who that approver must be,
+and the Mnemosyne service account's token must not be able to merge:
 
-```
+```text
 /templates/  @your-kb-maintainers
 ```
 
