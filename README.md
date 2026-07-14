@@ -141,8 +141,6 @@ and operational settings are documented in
 Adversarial review uses `REVIEWER_ADVOCATE_PROVIDER` and
 `REVIEWER_CRITIC_PROVIDER`. They must name different provider families and
 reuse the corresponding provider credentials and model configuration.
-Set `ADVERSARIAL_REVIEW_ENABLED=false` to skip automated review and leave the
-published PR for manual handling; it defaults to `true`.
 
 ## Governance and safety
 
