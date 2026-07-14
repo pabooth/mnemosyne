@@ -1,6 +1,6 @@
 ---
 description: States what a system or product must do and the constraints it must satisfy — functional and non-functional requirements with priority and rationale. Describes the need, not the solution design. Always explanation, never how-to or reference.
-tier: tier-1
+tier: tier-2
 ---
 
 # Document title

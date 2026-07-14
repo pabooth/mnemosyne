@@ -22,8 +22,8 @@ carries two fields:
   (human approval always required). A missing `tier` fails closed to
   `tier-2`. Declaring `tier-1` is a positive editorial decision to open
   the auto-merge path for that document type — the example set marks
-  normative types (standard, principle, sop, strategy, adr, rfc) as
-  `tier-2` and descriptive/factual types as `tier-1`.
+  normative types (standard, principle, sop, requirements, strategy, adr,
+  rfc) as `tier-2` and descriptive/factual types as `tier-1`.
 
 Guard the directory with the KB's existing branch protection (pull
 requests only, passing checks, at least one human approval, and the
