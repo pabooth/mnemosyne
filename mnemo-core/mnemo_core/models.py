@@ -51,8 +51,9 @@ class ProcessedDocument(BaseModel):
 
     title: str = Field(min_length=1, max_length=200)
     type: DiataxisType
-    # Legacy records predate ADR-011. Missing classification must fail closed:
-    # Tier 2 preserves compatibility without allowing automatic merge.
+    # Assigned by template lookup after classification (ADR-019), never by
+    # the LLM. The tier-2 default fails closed for legacy records and for
+    # documents with no matching template.
     review_tier: ReviewTier = "tier-2"
     sub_label: str = Field(default="", max_length=100, pattern=r"^[\w ./-]*$")
     status: Literal["draft", "review"] = "draft"

@@ -19,7 +19,9 @@ Tier 2 governance and constitutional content always requires human approval.
 Diataxis document type and review tier are separate axes:
 
 - Diataxis controls document shape: tutorial, how-to, reference, explanation.
-- Review tier controls review depth and risk handling.
+- Review tier controls review depth and risk handling. A document's tier is
+  declared by its template's `tier` frontmatter (ADR-019), never judged by
+  the LLM; anything without a declaration fails closed to Tier 2.
 
 The sub-label taxonomy and document templates are knowledge-base content,
 not code (ADR-018): they live in the KB repo's `templates/` directory and

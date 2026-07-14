@@ -17,7 +17,13 @@ async def classify_augment_format(
     if template is not None:
         raw = await llm.complete(system_prompt, build_user_message(doc, template))
         result = _validate_taxonomy(parse_processed_document(raw), templates)
-    return result
+        template = templates.get(result.type, result.sub_label) if result.sub_label else None
+
+    # ADR-019: the template declaration is the canonical review tier; the
+    # model has no say. Documents with no matching template fail closed.
+    return result.model_copy(
+        update={"review_tier": template.tier if template is not None else "tier-2"}
+    )
 
 
 def _validate_taxonomy(
