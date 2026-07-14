@@ -31,6 +31,7 @@ def test_reviewer_provider_families_must_differ():
     with pytest.raises(ValidationError, match="different families"):
         Settings(
             _env_file=None,
+            adversarial_review_enabled=True,
             reviewer_advocate_provider="openai",
             reviewer_critic_provider="OPENAI",
         )
@@ -55,6 +56,10 @@ def test_same_reviewer_family_is_allowed_when_review_is_disabled():
     )
     assert settings.reviewer_advocate_provider == "openai"
     assert settings.reviewer_critic_provider == "openai"
+
+
+def test_adversarial_review_is_disabled_by_default():
+    assert Settings(_env_file=None).adversarial_review_enabled is False
 
 
 def test_xai_and_gemini_defaults():

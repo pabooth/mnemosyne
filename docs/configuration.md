@@ -46,7 +46,7 @@ The GitHub webhook route is also under `/api/v1`, but it uses the
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `ADVERSARIAL_REVIEW_ENABLED` | `true` | Run the dual-model review gate after publishing; when `false`, leave every PR for manual handling and never auto-merge |
+| `ADVERSARIAL_REVIEW_ENABLED` | `false` | Run the dual-model review gate after publishing; when `false`, leave every PR for manual handling and never auto-merge |
 | `REVIEWER_ADVOCATE_PROVIDER` | `anthropic` | Provider family instructed to build the acceptance case |
 | `REVIEWER_CRITIC_PROVIDER` | `openai` | Provider family instructed to hunt for rejection reasons |
 

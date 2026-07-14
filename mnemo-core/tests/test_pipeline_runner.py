@@ -29,7 +29,11 @@ async def test_process_does_not_publish():
 
 def test_build_runner_constructs_reviewer_when_enabled():
     runner = build_runner(
-        Settings(github_token="token", github_repo="acme/kb"),
+        Settings(
+            github_token="token",
+            github_repo="acme/kb",
+            adversarial_review_enabled=True,
+        ),
         publisher=FakePublisher(),
         llm=FakeLLM(llm_json_response()),
     )
