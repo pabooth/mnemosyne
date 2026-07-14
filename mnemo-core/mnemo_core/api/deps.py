@@ -77,7 +77,11 @@ def get_llm(cfg: Settings = Depends(get_settings)) -> LLMProvider:
     return get_provider(cfg)
 
 
-def get_reviewer(cfg: Settings = Depends(get_settings)) -> AdversarialReviewer:
+def get_reviewer(
+    cfg: Settings = Depends(get_settings),
+) -> AdversarialReviewer | None:
+    if not cfg.adversarial_review_enabled:
+        return None
     return build_adversarial_reviewer(cfg)
 
 
@@ -103,7 +107,7 @@ def get_runner(
     dedup: DuplicateChecker | None = Depends(get_dedup_checker),
     cfg: Settings = Depends(get_settings),
     templates: TemplateSet = Depends(get_template_set),
-    reviewer: AdversarialReviewer = Depends(get_reviewer),
+    reviewer: AdversarialReviewer | None = Depends(get_reviewer),
 ) -> PipelineRunner:
     return PipelineRunner(
         llm,

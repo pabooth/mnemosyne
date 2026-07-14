@@ -40,6 +40,7 @@ class Settings(BaseSettings):
 
     # ADR-011 adversarial reviewer slots. These must be distinct provider
     # families; model names and credentials use the provider settings above.
+    adversarial_review_enabled: bool = True
     reviewer_advocate_provider: str = "anthropic"
     reviewer_critic_provider: str = "openai"
 
@@ -107,7 +108,10 @@ class Settings(BaseSettings):
     def reviewer_families_must_differ(self) -> "Settings":
         self.reviewer_advocate_provider = self.reviewer_advocate_provider.strip().lower()
         self.reviewer_critic_provider = self.reviewer_critic_provider.strip().lower()
-        if self.reviewer_advocate_provider == self.reviewer_critic_provider:
+        if (
+            self.adversarial_review_enabled
+            and self.reviewer_advocate_provider == self.reviewer_critic_provider
+        ):
             raise ValueError("adversarial reviewer providers must use different families")
         return self
 

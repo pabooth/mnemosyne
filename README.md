@@ -13,8 +13,8 @@ reviewer failure, and all Tier 2 governance content require human approval.
 
 The project contains:
 
-- `mnemo-core`: REST API, MCP server, processing pipeline, durable jobs, audit
-  history, GitHub publishing, and webhook intake.
+- `mnemo-core`: REST API, MCP server, processing and publishing pipeline, audit
+  history, and webhook intake.
 - `mnemo-ui`: optional static browser interface for previewing, editing, and
   submitting documents.
 - `mnemo-curator`: optional inspection and resolution service for Git-backed
@@ -30,7 +30,7 @@ The project contains:
 ## Requirements
 
 - Docker with Docker Compose
-- Credentials for Anthropic, OpenAI-compatible APIs, DeepSeek, or Ollama
+- Credentials for Anthropic, OpenAI-compatible APIs (OpenAI, Grok, Gemini, etc.), DeepSeek, or Ollama
 - A GitHub token with permission to create branches, files, and pull requests
 
 Branch protection on `main` requires PRs, passing checks, and at least one
@@ -141,6 +141,8 @@ and operational settings are documented in
 Adversarial review uses `REVIEWER_ADVOCATE_PROVIDER` and
 `REVIEWER_CRITIC_PROVIDER`. They must name different provider families and
 reuse the corresponding provider credentials and model configuration.
+Set `ADVERSARIAL_REVIEW_ENABLED=false` to skip automated review and leave the
+published PR for manual handling; it defaults to `true`.
 
 ## Governance and safety
 
