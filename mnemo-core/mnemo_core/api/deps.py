@@ -44,6 +44,8 @@ def build_runner(
         llm = get_provider(cfg)
     if dedup is None and cfg.dedup_enabled:
         dedup = build_dedup_checker(cfg)
+    if reviewer is None and cfg.adversarial_review_enabled:
+        reviewer = build_adversarial_reviewer(cfg)
     return PipelineRunner(
         llm,
         publisher,
