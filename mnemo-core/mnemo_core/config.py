@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # ADR-011 adversarial reviewer slots. These must be distinct provider
     # families; model names and credentials use the provider settings above.
-    adversarial_review_enabled: bool = True
+    adversarial_review_enabled: bool = False
     reviewer_advocate_provider: str = "anthropic"
     reviewer_critic_provider: str = "openai"
 

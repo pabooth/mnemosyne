@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import re
 from typing import Protocol
 
@@ -14,6 +15,8 @@ from ..models import (
     ReviewerReport,
 )
 from .markdown import build_markdown
+
+logger = logging.getLogger(__name__)
 
 
 class ReviewAuditSink(Protocol):
@@ -149,7 +152,11 @@ class AdversarialReviewer:
                 ),
             )
 
-        merged = await self._audit_sink.record(published, result)
+        try:
+            merged = await self._audit_sink.record(published, result)
+        except Exception:
+            logger.exception("Adversarial review audit failed after successful publish")
+            merged = False
         return result.model_copy(update={"merged": merged})
 
     async def _run(

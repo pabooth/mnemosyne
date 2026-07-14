@@ -10,6 +10,13 @@ MAX_DOCUMENT_CHARS = 1_000_000
 MAX_BODY_CHARS = 1_000_000
 
 
+def _validate_bounded_strings(values: list[str], label: str) -> list[str]:
+    cleaned = [value.strip() for value in values]
+    if any(not value or len(value) > 200 for value in cleaned):
+        raise ValueError(f"{label} must contain between 1 and 200 characters")
+    return cleaned
+
+
 class DocumentInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -60,10 +67,7 @@ class ProcessedDocument(BaseModel):
     @field_validator("tags", "flags")
     @classmethod
     def validate_list_values(cls, values: list[str]) -> list[str]:
-        cleaned = [value.strip() for value in values]
-        if any(not value or len(value) > 200 for value in cleaned):
-            raise ValueError("list values must contain between 1 and 200 characters")
-        return cleaned
+        return _validate_bounded_strings(values, "list values")
 
 
 class PublishResult(BaseModel):
@@ -84,10 +88,7 @@ class ReviewerReport(BaseModel):
     @field_validator("concerns")
     @classmethod
     def validate_concerns(cls, values: list[str]) -> list[str]:
-        cleaned = [value.strip() for value in values]
-        if any(not value or len(value) > 200 for value in cleaned):
-            raise ValueError("concerns must contain between 1 and 200 characters")
-        return cleaned
+        return _validate_bounded_strings(values, "concerns")
 
 
 class AdversarialReviewResult(BaseModel):

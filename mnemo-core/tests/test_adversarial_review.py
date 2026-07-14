@@ -78,6 +78,24 @@ async def test_tier_2_always_requires_human_review():
     assert result.merged is False
 
 
+async def test_audit_failure_does_not_turn_successful_publish_into_error():
+    class FailingSink:
+        async def record(self, published, result):
+            raise httpx.HTTPStatusError(
+                "comment failed",
+                request=httpx.Request("POST", published.pr_url),
+                response=httpx.Response(503),
+            )
+
+    result = await reviewer(report("accept"), report("accept"), FailingSink()).review(
+        processed_doc(review_tier="tier-1"), published()
+    )
+
+    assert result.outcome == "accepted"
+    assert result.requires_human_review is False
+    assert result.merged is False
+
+
 async def test_either_reviewer_can_upgrade_claimed_tier_1_to_tier_2():
     result = await reviewer(report("accept"), report("accept", tier="tier-2")).review(
         processed_doc(review_tier="tier-1"), published()

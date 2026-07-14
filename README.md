@@ -138,16 +138,20 @@ OpenAI-compatible endpoints can be selected using `OPENAI_BASE_URL`. Provider
 and operational settings are documented in
 [configuration.md](docs/configuration.md).
 
-Adversarial review uses `REVIEWER_ADVOCATE_PROVIDER` and
+Adversarial review is off by default. Set `ADVERSARIAL_REVIEW_ENABLED=true` to
+enable it, then configure `REVIEWER_ADVOCATE_PROVIDER` and
 `REVIEWER_CRITIC_PROVIDER`. They must name different provider families and
-reuse the corresponding provider credentials and model configuration.
+reuse the corresponding provider credentials and model configuration. See
+[configuration.md](docs/configuration.md#adversarial-review-adr-011) for the
+full setup and fallback behaviour.
 
 ## Governance and safety
 
 - Generated content can only be published to a feature branch and pull request.
-- Every published contribution receives cross-family adversarial review. Only
-  unanimous Tier 1 acceptance can trigger an automatic squash merge; all Tier 2
-  contributions and uncertain outcomes remain human-gated.
+- When enabled, every published contribution receives cross-family adversarial
+  review. Only unanimous Tier 1 acceptance can trigger an automatic squash
+  merge; when disabled, or for Tier 2 and uncertain outcomes, contributions
+  remain human-gated.
 - Preview output can be edited and then submitted verbatim through
   `/api/v1/publish`.
 - Inputs and generated outputs are validated and size-limited.

@@ -1,6 +1,7 @@
 import pytest
 
 from mnemo_core.api.deps import build_runner
+from mnemo_core.config import Settings
 from mnemo_core.models import AdversarialReviewResult, ProcessedDocument
 from mnemo_core.pipeline import ProcessingError
 from mnemo_core.pipeline.dedup import DuplicateChecker
@@ -24,6 +25,30 @@ async def test_process_does_not_publish():
     doc = await runner.process(sample_input())
     assert doc.title == "Deploy the app"
     assert publisher.last_doc is None
+
+
+def test_build_runner_constructs_reviewer_when_enabled():
+    runner = build_runner(
+        Settings(
+            github_token="token",
+            github_repo="acme/kb",
+            adversarial_review_enabled=True,
+        ),
+        publisher=FakePublisher(),
+        llm=FakeLLM(llm_json_response()),
+    )
+
+    assert runner._reviewer is not None
+
+
+def test_build_runner_skips_reviewer_when_disabled():
+    runner = build_runner(
+        Settings(adversarial_review_enabled=False),
+        publisher=FakePublisher(),
+        llm=FakeLLM(llm_json_response()),
+    )
+
+    assert runner._reviewer is None
 
 
 async def test_process_without_dedup_leaves_candidates_empty():
