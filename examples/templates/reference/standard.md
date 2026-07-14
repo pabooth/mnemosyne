@@ -1,5 +1,6 @@
 ---
 description: An organisational standard — mandatory rules stated with RFC 2119 language (MUST/SHOULD/MAY), with scope, compliance, and exception handling. Not a how-to; it defines what is required, not how to do it.
+tier: tier-2
 ---
 
 # Document title

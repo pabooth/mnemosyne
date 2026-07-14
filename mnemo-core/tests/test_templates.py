@@ -70,6 +70,23 @@ def test_parse_template_rejects_oversized_description():
         parse_template("templates/reference/standard.md", content)
 
 
+def test_parse_template_reads_declared_tier():
+    content = "---\ndescription: Ordinary factual content.\ntier: tier-1\n---\n\n## Body\n"
+    template = parse_template("templates/how-to/runbook.md", content)
+    assert template.tier == "tier-1"
+
+
+def test_parse_template_missing_tier_fails_closed_to_tier_2():
+    template = parse_template("templates/reference/standard.md", VALID_TEMPLATE)
+    assert template.tier == "tier-2"
+
+
+def test_parse_template_rejects_unknown_tier():
+    content = "---\ndescription: Typo in the tier value.\ntier: teir-1\n---\n\n## Body\n"
+    with pytest.raises(TemplateFetchError, match="unknown tier 'teir-1'"):
+        parse_template("templates/how-to/runbook.md", content)
+
+
 def test_template_set_rejects_duplicate_type_sub_label_pairs():
     duplicate = parse_template("templates/reference/standard.md", VALID_TEMPLATE)
     with pytest.raises(TemplateFetchError, match="exactly once"):

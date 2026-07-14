@@ -33,6 +33,9 @@ _FOLDER_TO_TYPE = {folder: doc_type for doc_type, folder in DIATAXIS_FOLDERS.ite
 
 _FRONTMATTER = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 _DESCRIPTION = re.compile(r"^description:\s*(.+)$", re.MULTILINE)
+_TIER = re.compile(r"^tier:\s*(.+)$", re.MULTILINE)
+
+REVIEW_TIERS = ("tier-1", "tier-2")
 
 
 class TemplateFetchError(Exception):
@@ -45,6 +48,9 @@ class Template:
     sub_label: str
     description: str
     body: str
+    # ADR-019: the template's declaration is the canonical review tier for
+    # every document of this (type, sub-label); absence fails closed.
+    tier: str = "tier-2"
 
 
 class TemplateSet:
@@ -123,9 +129,25 @@ def parse_template(path: str, content: str) -> Template:
             "characters; it is injected into every classification prompt, "
             "so keep it a concise definition"
         )
+
+    # ADR-019: a missing tier fails closed to tier-2, but an explicit value
+    # must be valid — a typo silently becoming tier-2 would misstate the
+    # curator's reviewed intent.
+    tier_match = _TIER.search(frontmatter.group(1))
+    tier = "tier-2"
+    if tier_match is not None:
+        tier = tier_match.group(1).strip().strip("\"'")
+        if tier not in REVIEW_TIERS:
+            raise TemplateFetchError(
+                f"Template {path!r} declares unknown tier {tier!r}; "
+                f"expected one of: {', '.join(REVIEW_TIERS)}"
+            )
+
     body = content[frontmatter.end() :].strip("\n")
 
-    return Template(type=doc_type, sub_label=sub_label, description=description, body=body)
+    return Template(
+        type=doc_type, sub_label=sub_label, description=description, body=body, tier=tier
+    )
 
 
 def fetch_template_set(

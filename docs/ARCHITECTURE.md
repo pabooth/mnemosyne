@@ -272,7 +272,7 @@ Key decisions governing this project are documented as ADRs in `/docs/ADRs/`.
 | 002 | MIT License                                      | Accepted |
 | 003 | Diataxis as content taxonomy                     | Accepted |
 | 004 | Pluggable LLM layer                              | Accepted |
-| 005 | AI must not contribute without human review      | Accepted |
+| 005 | AI must not contribute without human review      | Superseded |
 | 006 | MCP as intake interface only, not retrieval      | Accepted |
 | 007 | Pluggable KB layer, MkDocs Material as reference | Accepted |
 | 008 | MCP transport and client compatibility           | Accepted |
@@ -283,3 +283,7 @@ Key decisions governing this project are documented as ADRs in `/docs/ADRs/`.
 | 013 | API contract & versioning strategy               | Accepted |
 | 014 | Pluggable vector-index layer, sqlite-vec as reference | Accepted |
 | 015 | Persistence layout: bind-mounted, component-named data dirs, WAL-mode SQLite | Accepted |
+| 016 | Standalone proxy container                       | Accepted |
+| 017 | Instance directory                               | Accepted |
+| 018 | KB-owned templates define the sub-label taxonomy | Proposed |
+| 019 | Templates declare the review tier of their document type | Proposed |

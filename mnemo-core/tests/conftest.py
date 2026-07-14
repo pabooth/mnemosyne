@@ -16,12 +16,14 @@ SAMPLE_TEMPLATES = TemplateSet(
             sub_label="standard",
             description="Rules the organisation mandates, with RFC 2119 language.",
             body="## Introduction\n\n## Policies\n\n## Review",
+            tier="tier-2",
         ),
         Template(
             type="how-to",
             sub_label="procedure",
             description="Step-by-step instructions for an operational task.",
             body="## Goal\n\n## Steps\n\n## Verification",
+            tier="tier-1",
         ),
     ]
 )

@@ -83,3 +83,30 @@ async def test_classify_accepts_empty_sub_label():
     llm = FakeLLM(llm_json_response(sub_label=""))
     doc = await classify_augment_format(sample_input(), llm, TemplateSet([]))
     assert doc.sub_label == ""
+
+
+async def test_review_tier_comes_from_template_not_llm():
+    # ADR-019: the LLM claims tier-1, but "standard" is declared tier-2.
+    llm = FakeLLM(
+        llm_json_response(type="reference", sub_label="standard", review_tier="tier-1")
+    )
+    doc = await classify_augment_format(sample_input(), llm, SAMPLE_TEMPLATES)
+    assert doc.review_tier == "tier-2"
+
+
+async def test_review_tier_uses_declared_tier_1():
+    llm = FakeLLM(
+        llm_json_response(type="how-to", sub_label="procedure", review_tier="tier-2")
+    )
+    doc = await classify_augment_format(sample_input(), llm, SAMPLE_TEMPLATES)
+    assert doc.review_tier == "tier-1"
+
+
+async def test_review_tier_fails_closed_without_matching_template():
+    llm = FakeLLM(llm_json_response(sub_label="", review_tier="tier-1"))
+    doc = await classify_augment_format(sample_input(), llm, TemplateSet([]))
+    assert doc.review_tier == "tier-2"
+
+
+def test_classifier_prompt_does_not_ask_for_review_tier():
+    assert "review_tier" not in build_system_prompt(SAMPLE_TEMPLATES)
