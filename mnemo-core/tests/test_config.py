@@ -46,6 +46,17 @@ def test_reviewer_provider_families_are_normalized():
     assert settings.reviewer_critic_provider == "gemini"
 
 
+def test_same_reviewer_family_is_allowed_when_review_is_disabled():
+    settings = Settings(
+        _env_file=None,
+        adversarial_review_enabled=False,
+        reviewer_advocate_provider="openai",
+        reviewer_critic_provider="OPENAI",
+    )
+    assert settings.reviewer_advocate_provider == "openai"
+    assert settings.reviewer_critic_provider == "openai"
+
+
 def test_xai_and_gemini_defaults():
     settings = Settings(_env_file=None)
     assert settings.xai_base_url == "https://api.x.ai/v1"

@@ -46,6 +46,7 @@ The GitHub webhook route is also under `/api/v1`, but it uses the
 
 | Variable | Default | Purpose |
 |---|---|---|
+| `ADVERSARIAL_REVIEW_ENABLED` | `true` | Run the dual-model review gate after publishing; when `false`, leave every PR for manual handling and never auto-merge |
 | `REVIEWER_ADVOCATE_PROVIDER` | `anthropic` | Provider family instructed to build the acceptance case |
 | `REVIEWER_CRITIC_PROVIDER` | `openai` | Provider family instructed to hunt for rejection reasons |
 
@@ -55,6 +56,11 @@ Every `/ingest` and `/publish` operation records the structured outcome in a PR
 comment. Reviewer disagreement, invalid output, or unavailability escalates to
 human review. Tier 2 always requires human approval. Only unanimous Tier 1
 acceptance attempts an automatic squash merge.
+
+Setting `ADVERSARIAL_REVIEW_ENABLED=false` skips both reviewer calls, the review
+comment, and automatic merge. Publishing still creates a branch and pull request,
+and the API returns `null` for the review result. This is an operational fallback;
+the PR must then be handled manually.
 
 ## Document templates and taxonomy (ADR-018)
 
