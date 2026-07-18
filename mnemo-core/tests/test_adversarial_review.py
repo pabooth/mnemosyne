@@ -4,7 +4,11 @@ import httpx
 import pytest
 
 from mnemo_core.models import AdversarialReviewResult, PublishResult, ReviewerReport
-from mnemo_core.pipeline.review import AdversarialReviewer, GitHubReviewAuditSink
+from mnemo_core.pipeline.review import (
+    AdversarialReviewer,
+    GitHubReviewAuditSink,
+    _system_prompt,
+)
 from tests.conftest import FakeLLM, processed_doc
 
 
@@ -43,6 +47,37 @@ def published() -> PublishResult:
     return PublishResult(
         pr_url="https://github.com/acme/kb/pull/42", branch="mnemo/test", file_path="how-to/a.md"
     )
+
+
+@pytest.mark.parametrize("role", ["advocate", "critic"])
+def test_reviewer_prompt_explains_expected_pipeline_states(role):
+    prompt = _system_prompt(role)
+
+    assert "`proposed` status" in prompt
+    assert "`incomplete` flag" in prompt
+    assert "unresolved cross-references awaiting the curator" in prompt
+    assert "Tier 2 human" in prompt
+    assert "pending ratification is not a defect" in prompt
+
+
+def test_advocate_rejects_only_substantiated_correctness_or_safety_errors():
+    prompt = _system_prompt("advocate")
+
+    assert "Reject only for a demonstrable, material correctness or safety error" in prompt
+    assert "otherwise accept" in prompt
+
+
+def test_critic_uses_broader_material_risk_bar_without_rejecting_for_style_alone():
+    prompt = _system_prompt("critic")
+
+    assert "poor provenance" in prompt
+    assert "failure to serve its stated Diataxis purpose" in prompt
+    assert "style alone is grounds for rejection only when it materially" in prompt
+
+
+@pytest.mark.parametrize("role", ["advocate", "critic"])
+def test_reviewer_prompt_allows_non_blocking_concerns_with_acceptance(role):
+    assert "Concerns may be non-blocking" in _system_prompt(role)
 
 
 async def test_unanimous_tier_1_acceptance_can_merge():
