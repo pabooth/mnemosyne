@@ -25,6 +25,11 @@ def test_parse_processed_document_accepts_document_statuses(status):
     assert doc.status == status
 
 
+def test_parse_processed_document_rejects_unsupported_status():
+    with pytest.raises(ProcessingError):
+        parse_processed_document(llm_json_response(status="archived"))
+
+
 def test_parse_processed_document_fenced_json():
     doc = parse_processed_document(f"```json\n{llm_json_response()}\n```")
     assert doc.title == VALID_PROCESSED_JSON["title"]
