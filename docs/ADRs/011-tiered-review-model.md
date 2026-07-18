@@ -17,6 +17,8 @@
 | **Review date** | 2027-06-30 |
 | **Supersedes** | [ADR-005: AI must not contribute to the knowledge base without human review](005-human-review-governance.md) |
 | **Superseded by** | — |
+| **Amends** | — |
+| **Amended by** | [ADR-020: Adjudicate an authored case against an adversarial challenge](020-adversarial-adjudication.md) |
 
 ---
 

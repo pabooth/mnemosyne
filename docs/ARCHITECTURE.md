@@ -287,3 +287,4 @@ Key decisions governing this project are documented as ADRs in `/docs/ADRs/`.
 | 017 | Instance directory                               | Accepted |
 | 018 | KB-owned templates define the sub-label taxonomy | Proposed |
 | 019 | Templates declare the review tier of their document type | Proposed |
+| 020 | Adjudicate an authored case against an adversarial challenge | Accepted |

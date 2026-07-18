@@ -40,6 +40,7 @@ VALID_PROCESSED_JSON = {
     "last_reviewed": "2026-06-14",
     "flags": [],
     "body": "## Steps\n\n1. Build\n2. Ship",
+    "acceptance_case": "The procedure states a bounded task and provides verifiable steps.",
 }
 
 

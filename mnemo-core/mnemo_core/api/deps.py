@@ -66,17 +66,17 @@ def build_adversarial_reviewer(cfg: Settings | None = None) -> AdversarialReview
     cfg = get_settings() if cfg is None else cfg
     return AdversarialReviewer(
         _DeferredProvider(
-            cfg.reviewer_advocate_provider,
-            cfg.reviewer_advocate_model,
-            cfg,
-        ),
-        _DeferredProvider(
             cfg.reviewer_critic_provider,
             cfg.reviewer_critic_model,
             cfg,
         ),
-        advocate_family=cfg.reviewer_advocate_provider,
+        _DeferredProvider(
+            cfg.reviewer_judge_provider,
+            cfg.reviewer_judge_model,
+            cfg,
+        ),
         critic_family=cfg.reviewer_critic_provider,
+        judge_family=cfg.reviewer_judge_provider,
         audit_sink=GitHubReviewAuditSink(cfg.github_token, cfg.github_repo),
     )
 

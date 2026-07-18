@@ -140,20 +140,21 @@ the model used by the processing pipeline. Operational settings are documented i
 [configuration.md](docs/configuration.md).
 
 Adversarial review is off by default. Set `ADVERSARIAL_REVIEW_ENABLED=true` to
-enable it, then configure `REVIEWER_ADVOCATE_PROVIDER` and
-`REVIEWER_ADVOCATE_MODEL`, plus `REVIEWER_CRITIC_PROVIDER` and
-`REVIEWER_CRITIC_MODEL`. The providers must name different families. Each slot
-selects its model independently and reuses the corresponding credentials. See
-[configuration.md](docs/configuration.md#adversarial-review-adr-011) for the
+enable it, then configure `REVIEWER_CRITIC_PROVIDER`/`MODEL` and
+`REVIEWER_JUDGE_PROVIDER`/`MODEL`. The main LLM authors the document and its
+acceptance case; the critic challenges that case and the judge adjudicates it.
+All three providers must name different families. Each slot reuses the
+corresponding provider credentials. See
+[configuration.md](docs/configuration.md#adversarial-adjudication-adr-020) for the
 full setup and fallback behaviour.
 
 ## Governance and safety
 
 - Generated content can only be published to a feature branch and pull request.
 - When enabled, every published contribution receives cross-family adversarial
-  review. Only unanimous Tier 1 acceptance can trigger an automatic squash
-  merge; when disabled, or for Tier 2 and uncertain outcomes, contributions
-  remain human-gated.
+  adjudication. Only a Tier 1 judge decision of `accept` can trigger an
+  automatic squash merge; when disabled, or for Tier 2, rejection, uncertainty,
+  or unavailable models, contributions remain human-gated.
 - Preview output can be edited and then submitted verbatim through
   `/api/v1/publish`.
 - Inputs and generated outputs are validated and size-limited.

@@ -27,35 +27,48 @@ def test_explicit_empty_vector_db_path_opts_in_to_sharing():
     assert settings.vector_db_path == ""
 
 
-def test_reviewer_provider_families_must_differ():
+@pytest.mark.parametrize(
+    ("main", "critic", "judge"),
+    [
+        ("openai", "OPENAI", "gemini"),
+        ("anthropic", "openai", "OPENAI"),
+        ("Gemini", "openai", "gemini"),
+    ],
+)
+def test_adjudication_provider_families_must_differ(main, critic, judge):
     with pytest.raises(ValidationError, match="different families"):
         Settings(
             _env_file=None,
             adversarial_review_enabled=True,
-            reviewer_advocate_provider="openai",
-            reviewer_critic_provider="OPENAI",
+            main_llm_provider=main,
+            reviewer_critic_provider=critic,
+            reviewer_judge_provider=judge,
         )
 
 
-def test_reviewer_provider_families_are_normalized():
+def test_adjudication_provider_families_are_normalized():
     settings = Settings(
         _env_file=None,
-        reviewer_advocate_provider=" Anthropic ",
-        reviewer_critic_provider="GEMINI",
+        main_llm_provider=" Anthropic ",
+        reviewer_critic_provider=" OPENAI ",
+        reviewer_judge_provider="GEMINI",
     )
-    assert settings.reviewer_advocate_provider == "anthropic"
-    assert settings.reviewer_critic_provider == "gemini"
+    assert settings.main_llm_provider == "anthropic"
+    assert settings.reviewer_critic_provider == "openai"
+    assert settings.reviewer_judge_provider == "gemini"
 
 
-def test_same_reviewer_family_is_allowed_when_review_is_disabled():
+def test_same_adjudication_family_is_allowed_when_review_is_disabled():
     settings = Settings(
         _env_file=None,
         adversarial_review_enabled=False,
-        reviewer_advocate_provider="openai",
+        main_llm_provider="openai",
         reviewer_critic_provider="OPENAI",
+        reviewer_judge_provider="openai",
     )
-    assert settings.reviewer_advocate_provider == "openai"
+    assert settings.main_llm_provider == "openai"
     assert settings.reviewer_critic_provider == "openai"
+    assert settings.reviewer_judge_provider == "openai"
 
 
 def test_adversarial_review_is_disabled_by_default():
@@ -72,5 +85,5 @@ def test_llm_slots_have_independent_model_defaults():
     settings = Settings(_env_file=None)
     assert settings.main_llm_provider == "anthropic"
     assert settings.main_llm_model == "claude-sonnet-4-6"
-    assert settings.reviewer_advocate_model == "claude-sonnet-4-6"
     assert settings.reviewer_critic_model == "gpt-4o"
+    assert settings.reviewer_judge_model == "gemini-2.5-pro"

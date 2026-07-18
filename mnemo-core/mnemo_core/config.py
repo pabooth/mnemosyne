@@ -33,14 +33,13 @@ class Settings(BaseSettings):
     # Ollama (no API key — served via OpenAI-compat endpoint)
     ollama_base_url: str = "http://localhost:11434"
 
-    # ADR-011 adversarial reviewer slots. These must be distinct provider
-    # families. Each slot selects its model independently while credentials
-    # and endpoints come from the selected provider settings above.
+    # ADR-020 adversarial adjudication. The main LLM is the author-advocate;
+    # critic and judge must complete a three-family pairing with it.
     adversarial_review_enabled: bool = False
-    reviewer_advocate_provider: str = "anthropic"
-    reviewer_advocate_model: str = "claude-sonnet-4-6"
     reviewer_critic_provider: str = "openai"
     reviewer_critic_model: str = "gpt-4o"
+    reviewer_judge_provider: str = "gemini"
+    reviewer_judge_model: str = "gemini-2.5-pro"
 
     # GitHub — required for the internal publish step used by ingest
     github_token: str = ""
@@ -103,14 +102,17 @@ class Settings(BaseSettings):
     dedup_top_k: int = 3
 
     @model_validator(mode="after")
-    def reviewer_families_must_differ(self) -> "Settings":
-        self.reviewer_advocate_provider = self.reviewer_advocate_provider.strip().lower()
+    def adjudication_families_must_differ(self) -> "Settings":
+        self.main_llm_provider = self.main_llm_provider.strip().lower()
         self.reviewer_critic_provider = self.reviewer_critic_provider.strip().lower()
-        if (
-            self.adversarial_review_enabled
-            and self.reviewer_advocate_provider == self.reviewer_critic_provider
-        ):
-            raise ValueError("adversarial reviewer providers must use different families")
+        self.reviewer_judge_provider = self.reviewer_judge_provider.strip().lower()
+        families = {
+            self.main_llm_provider,
+            self.reviewer_critic_provider,
+            self.reviewer_judge_provider,
+        }
+        if self.adversarial_review_enabled and len(families) != 3:
+            raise ValueError("author, critic, and judge providers must use different families")
         return self
 
 

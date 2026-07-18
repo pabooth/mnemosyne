@@ -44,17 +44,17 @@ def test_main_model_is_independent_from_provider_credentials():
     assert provider._model == "custom-main-model"
 
 
-def test_reviewer_models_are_configured_independently():
+def test_critic_and_judge_models_are_configured_independently():
     reviewer = build_adversarial_reviewer(
         Settings(
-            reviewer_advocate_provider="anthropic",
-            reviewer_advocate_model="custom-advocate-model",
             reviewer_critic_provider="openai",
             reviewer_critic_model="custom-critic-model",
+            reviewer_judge_provider="gemini",
+            reviewer_judge_model="custom-judge-model",
         )
     )
-    assert reviewer._advocate._model == "custom-advocate-model"
     assert reviewer._critic._model == "custom-critic-model"
+    assert reviewer._judge._model == "custom-judge-model"
 
 
 async def test_gpt_5_models_use_max_completion_tokens():
