@@ -9,7 +9,14 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 from .indexing.service import Indexer
-from .models import DocumentInput, IndexReconcileRequest, IndexTriggerRequest
+from .models import (
+    AdversarialReviewResult,
+    DocumentInput,
+    IndexReconcileRequest,
+    IndexTriggerRequest,
+    ProcessedDocument,
+    PublishResult,
+)
 from .pipeline.runner import PipelineRunner
 
 JobKind = Literal["process", "ingest", "index_trigger", "index_reconcile"]
@@ -55,6 +62,16 @@ class JobStore:
                     details_json TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS review_jobs (
+                    pr_url TEXT PRIMARY KEY,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    document_json TEXT NOT NULL,
+                    publish_json TEXT NOT NULL,
+                    result_json TEXT,
+                    error TEXT
+                );
                 """
             )
             columns = {
@@ -67,6 +84,90 @@ class JobStore:
                 "WHERE status IN ('queued', 'running')",
                 (_now(),),
             )
+            db.execute(
+                "UPDATE review_jobs SET status = 'pending', updated_at = ? "
+                "WHERE status = 'running'",
+                (_now(),),
+            )
+
+    def create_review_job(
+        self, document: ProcessedDocument, published: PublishResult
+    ) -> dict[str, Any]:
+        """Persist review work at the point where a pull request exists."""
+        timestamp = _now()
+        with self._connect() as db:
+            db.execute(
+                "INSERT OR IGNORE INTO review_jobs "
+                "(pr_url, status, created_at, updated_at, document_json, publish_json) "
+                "VALUES (?, 'pending', ?, ?, ?, ?)",
+                (
+                    published.pr_url,
+                    timestamp,
+                    timestamp,
+                    document.model_dump_json(),
+                    published.model_dump_json(exclude={"review"}),
+                ),
+            )
+        return self.get_review_job(published.pr_url)
+
+    def get_review_job(self, pr_url: str) -> dict[str, Any] | None:
+        with self._connect() as db:
+            row = db.execute(
+                "SELECT * FROM review_jobs WHERE pr_url = ?", (pr_url,)
+            ).fetchone()
+        return self._review_job_dict(row) if row else None
+
+    def list_pending_review_jobs(self) -> list[dict[str, Any]]:
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT * FROM review_jobs WHERE status = 'pending' ORDER BY created_at"
+            ).fetchall()
+        return [self._review_job_dict(row) for row in rows]
+
+    def claim_review_job(self, pr_url: str) -> bool:
+        with self._connect() as db:
+            cursor = db.execute(
+                "UPDATE review_jobs SET status = 'running', updated_at = ?, error = NULL "
+                "WHERE pr_url = ? AND status = 'pending'",
+                (_now(), pr_url),
+            )
+        return cursor.rowcount == 1
+
+    def finish_review_job(
+        self,
+        pr_url: str,
+        *,
+        result: AdversarialReviewResult | None = None,
+        error: str | None = None,
+    ) -> None:
+        status = "succeeded" if result is not None else "pending"
+        with self._connect() as db:
+            db.execute(
+                "UPDATE review_jobs SET status = ?, updated_at = ?, result_json = ?, error = ? "
+                "WHERE pr_url = ?",
+                (
+                    status,
+                    _now(),
+                    result.model_dump_json() if result is not None else None,
+                    error,
+                    pr_url,
+                ),
+            )
+
+    @staticmethod
+    def _review_job_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "pr_url": row["pr_url"],
+            "status": row["status"],
+            "document": ProcessedDocument.model_validate_json(row["document_json"]),
+            "published": PublishResult.model_validate_json(row["publish_json"]),
+            "result": (
+                AdversarialReviewResult.model_validate_json(row["result_json"])
+                if row["result_json"]
+                else None
+            ),
+            "error": row["error"],
+        }
 
     def create_job(self, kind: JobKind, actor: str, payload: BaseModel) -> dict[str, Any]:
         job_id = str(uuid.uuid4())

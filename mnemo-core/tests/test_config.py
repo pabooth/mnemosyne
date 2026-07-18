@@ -65,6 +65,12 @@ def test_adversarial_review_is_disabled_by_default():
 def test_xai_and_gemini_defaults():
     settings = Settings(_env_file=None)
     assert settings.xai_base_url == "https://api.x.ai/v1"
-    assert settings.xai_model == "grok-4.5"
     assert settings.gemini_base_url == "https://generativelanguage.googleapis.com/v1beta/openai/"
-    assert settings.gemini_model == "gemini-3.5-flash"
+
+
+def test_llm_slots_have_independent_model_defaults():
+    settings = Settings(_env_file=None)
+    assert settings.main_llm_provider == "anthropic"
+    assert settings.main_llm_model == "claude-sonnet-4-6"
+    assert settings.reviewer_advocate_model == "claude-sonnet-4-6"
+    assert settings.reviewer_critic_model == "gpt-4o"

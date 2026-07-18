@@ -1,9 +1,11 @@
 from importlib.metadata import version
 
+import pytest
 from fastapi.testclient import TestClient
 
 from mnemo_core.api.app import create_app
 from mnemo_core.api.deps import build_runner, get_runner
+from mnemo_core.api.routers.health import _llm_is_configured
 from mnemo_core.config import Settings
 from tests.conftest import FakeLLM, FakePublisher, llm_json_response
 
@@ -14,6 +16,15 @@ def test_readiness_reports_missing_configuration(tmp_path):
         response = client.get("/ready")
     assert response.status_code == 503
     assert response.json()["checks"]["api_token"] is False
+
+
+@pytest.mark.parametrize(
+    ("provider", "key_field"),
+    [("xai", "xai_api_key"), ("gemini", "gemini_api_key")],
+)
+def test_readiness_accepts_openai_compatible_provider_keys(provider, key_field):
+    settings = Settings(main_llm_provider=provider, **{key_field: "test-key"})
+    assert _llm_is_configured(settings) is True
 
 
 def test_rate_limit_is_enforced(tmp_path):

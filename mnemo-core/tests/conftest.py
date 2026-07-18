@@ -55,12 +55,13 @@ def reset_settings():
 
 
 @pytest.fixture
-def test_settings() -> Settings:
+def test_settings(tmp_path) -> Settings:
     return Settings(
         mnemo_api_token="test-secret",
         github_token="gh-test",
         github_repo="acme/kb",
-        llm_provider="anthropic",
+        main_llm_provider="anthropic",
+        state_db_path=str(tmp_path / "state.db"),
     )
 
 
@@ -75,11 +76,13 @@ class FakeLLM(LLMProvider):
         self.response = response
         self.last_system: str | None = None
         self.last_user: str | None = None
+        self.last_max_tokens: int | None = None
         self.calls: list[tuple[str, str]] = []
 
     async def complete(self, system: str, user: str, max_tokens: int = 4000) -> str:
         self.last_system = system
         self.last_user = user
+        self.last_max_tokens = max_tokens
         self.calls.append((system, user))
         return self.response
 

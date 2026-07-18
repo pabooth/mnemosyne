@@ -400,6 +400,8 @@ dd {
 
 .file-button {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: fit-content;
   margin-top: 0.75rem;
   cursor: pointer;

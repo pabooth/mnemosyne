@@ -3,7 +3,10 @@ from datetime import date
 import pytest
 
 from mnemo_core.pipeline import ProcessingError
-from mnemo_core.pipeline.classify import classify_augment_format
+from mnemo_core.pipeline.classify import (
+    DOCUMENT_OUTPUT_MAX_TOKENS,
+    classify_augment_format,
+)
 from mnemo_core.pipeline.prompts import build_system_prompt, build_user_message
 from mnemo_core.pipeline.templates import TemplateSet
 from tests.conftest import SAMPLE_TEMPLATES, FakeLLM, llm_json_response, sample_input
@@ -49,6 +52,7 @@ async def test_classify_augment_format_parses_llm_response():
     assert doc.title == "Parsed Title"
     assert llm.last_system is not None
     assert "Diataxis" in llm.last_system
+    assert llm.last_max_tokens == DOCUMENT_OUTPUT_MAX_TOKENS
 
 
 async def test_classify_selects_template_body_from_classified_result_without_hints():

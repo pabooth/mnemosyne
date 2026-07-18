@@ -1,9 +1,10 @@
-from fastapi import Depends
+from fastapi import Depends, Request
 
 from ..config import Settings, get_settings
 from ..embeddings.factory import get_embedding_provider
 from ..indexing.github import GitHubContentSource
 from ..indexing.service import Indexer
+from ..jobs import JobStore
 from ..llm.base import LLMProvider
 from ..llm.factory import get_provider, get_provider_for
 from ..pipeline.dedup import DuplicateChecker
@@ -17,12 +18,13 @@ from ..vector.factory import get_vector_index
 class _DeferredProvider(LLMProvider):
     """Delay credential validation until the reviewer is actually invoked."""
 
-    def __init__(self, family: str, cfg: Settings) -> None:
+    def __init__(self, family: str, model: str, cfg: Settings) -> None:
         self._family = family
+        self._model = model
         self._cfg = cfg
 
     async def complete(self, system: str, user: str, max_tokens: int = 4000) -> str:
-        provider = get_provider_for(self._family, self._cfg)
+        provider = get_provider_for(self._family, self._model, self._cfg)
         return await provider.complete(system, user, max_tokens)
 
 
@@ -32,6 +34,7 @@ def build_runner(
     llm: LLMProvider | None = None,
     dedup: DuplicateChecker | None = None,
     reviewer: AdversarialReviewer | None = None,
+    review_store: JobStore | None = None,
 ) -> PipelineRunner:
     cfg = get_settings() if cfg is None else cfg
     if publisher is None:
@@ -46,6 +49,8 @@ def build_runner(
         dedup = build_dedup_checker(cfg)
     if reviewer is None and cfg.adversarial_review_enabled:
         reviewer = build_adversarial_reviewer(cfg)
+    if reviewer is not None and review_store is None:
+        review_store = JobStore(cfg.state_db_path)
     return PipelineRunner(
         llm,
         publisher,
@@ -53,14 +58,23 @@ def build_runner(
         timeout_seconds=cfg.request_timeout_seconds,
         templates=get_template_set(),
         reviewer=reviewer,
+        review_store=review_store,
     )
 
 
 def build_adversarial_reviewer(cfg: Settings | None = None) -> AdversarialReviewer:
     cfg = get_settings() if cfg is None else cfg
     return AdversarialReviewer(
-        _DeferredProvider(cfg.reviewer_advocate_provider, cfg),
-        _DeferredProvider(cfg.reviewer_critic_provider, cfg),
+        _DeferredProvider(
+            cfg.reviewer_advocate_provider,
+            cfg.reviewer_advocate_model,
+            cfg,
+        ),
+        _DeferredProvider(
+            cfg.reviewer_critic_provider,
+            cfg.reviewer_critic_model,
+            cfg,
+        ),
         advocate_family=cfg.reviewer_advocate_provider,
         critic_family=cfg.reviewer_critic_provider,
         audit_sink=GitHubReviewAuditSink(cfg.github_token, cfg.github_repo),
@@ -87,6 +101,10 @@ def get_reviewer(
     return build_adversarial_reviewer(cfg)
 
 
+def get_review_store(request: Request) -> JobStore:
+    return request.app.state.job_store
+
+
 def build_dedup_checker(cfg: Settings | None = None) -> DuplicateChecker:
     cfg = get_settings() if cfg is None else cfg
     return DuplicateChecker(
@@ -110,6 +128,7 @@ def get_runner(
     cfg: Settings = Depends(get_settings),
     templates: TemplateSet = Depends(get_template_set),
     reviewer: AdversarialReviewer | None = Depends(get_reviewer),
+    review_store: JobStore = Depends(get_review_store),
 ) -> PipelineRunner:
     return PipelineRunner(
         llm,
@@ -118,6 +137,7 @@ def get_runner(
         timeout_seconds=cfg.request_timeout_seconds,
         templates=templates,
         reviewer=reviewer,
+        review_store=review_store if reviewer is not None else None,
     )
 
 

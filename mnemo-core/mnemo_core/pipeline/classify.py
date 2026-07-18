@@ -5,17 +5,27 @@ from .parse import parse_processed_document
 from .prompts import build_system_prompt, build_user_message
 from .templates import TemplateSet
 
+DOCUMENT_OUTPUT_MAX_TOKENS = 16_000
+
 
 async def classify_augment_format(
     doc: DocumentInput, llm: LLMProvider, templates: TemplateSet
 ) -> ProcessedDocument:
     system_prompt = build_system_prompt(templates)
-    raw = await llm.complete(system_prompt, build_user_message(doc))
+    raw = await llm.complete(
+        system_prompt,
+        build_user_message(doc),
+        max_tokens=DOCUMENT_OUTPUT_MAX_TOKENS,
+    )
     result = _validate_taxonomy(parse_processed_document(raw), templates)
 
     template = templates.get(result.type, result.sub_label) if result.sub_label else None
     if template is not None:
-        raw = await llm.complete(system_prompt, build_user_message(doc, template))
+        raw = await llm.complete(
+            system_prompt,
+            build_user_message(doc, template),
+            max_tokens=DOCUMENT_OUTPUT_MAX_TOKENS,
+        )
         result = _validate_taxonomy(parse_processed_document(raw), templates)
         template = templates.get(result.type, result.sub_label) if result.sub_label else None
 

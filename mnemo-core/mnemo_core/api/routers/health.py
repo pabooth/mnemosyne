@@ -26,12 +26,16 @@ async def ready(cfg: Settings = Depends(get_settings)) -> JSONResponse:
 
 
 def _llm_is_configured(cfg: Settings) -> bool:
-    if cfg.llm_provider == "anthropic":
+    if cfg.main_llm_provider == "anthropic":
         return bool(cfg.anthropic_api_key)
-    if cfg.llm_provider == "openai":
+    if cfg.main_llm_provider == "openai":
         return bool(cfg.openai_api_key)
-    if cfg.llm_provider == "deepseek":
+    if cfg.main_llm_provider == "deepseek":
         return bool(cfg.deepseek_api_key)
-    if cfg.llm_provider == "ollama":
+    if cfg.main_llm_provider == "xai":
+        return bool(cfg.xai_api_key)
+    if cfg.main_llm_provider == "gemini":
+        return bool(cfg.gemini_api_key)
+    if cfg.main_llm_provider == "ollama":
         return bool(cfg.ollama_base_url)
     return False

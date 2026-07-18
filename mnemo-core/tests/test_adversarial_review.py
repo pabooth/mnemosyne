@@ -69,6 +69,16 @@ async def test_invalid_reviewer_response_escalates():
     assert result.critic is None
 
 
+async def test_oversized_reviewer_concern_is_bounded_without_discarding_report():
+    result = await reviewer(report("accept", ["x" * 501]), report("accept")).review(
+        processed_doc(), published()
+    )
+
+    assert result.advocate is not None
+    assert result.advocate.concerns == ["x" * 500]
+    assert result.outcome == "accepted"
+
+
 async def test_tier_2_always_requires_human_review():
     result = await reviewer(report("accept"), report("accept")).review(
         processed_doc(review_tier="tier-2"), published()
@@ -116,7 +126,7 @@ def test_same_family_pair_is_rejected():
         )
 
 
-@pytest.mark.parametrize("concern", ["", "x" * 201])
+@pytest.mark.parametrize("concern", ["", "x" * 501])
 def test_reviewer_concerns_are_bounded(concern):
     with pytest.raises(ValueError, match="concerns"):
         ReviewerReport(

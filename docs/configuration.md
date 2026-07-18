@@ -7,7 +7,8 @@
 | `MNEMO_API_TOKEN` | Shared administrator token |
 | `GITHUB_TOKEN` | Token used to create branches, files, pull requests, review comments, and eligible Tier 1 merges |
 | `GITHUB_REPO` | Target repository in `owner/repository` form |
-| `LLM_PROVIDER` | `anthropic`, `openai`, `deepseek`, `xai`, `gemini`, or `ollama` |
+| `MAIN_LLM_PROVIDER` | `anthropic`, `openai`, `deepseek`, `xai`, `gemini`, or `ollama` |
+| `MAIN_LLM_MODEL` | Model used by the main document-processing pipeline |
 
 Use `MNEMO_API_TOKENS` for named identities:
 
@@ -33,14 +34,18 @@ The GitHub webhook route is also under `/api/v1`, but it uses the
 
 ## Provider settings
 
-| Provider | Variables |
+| Provider | Credentials and endpoint variables |
 |---|---|
-| Anthropic | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` |
-| OpenAI-compatible | `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL` |
-| DeepSeek | `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL` |
-| xAI / Grok | `XAI_API_KEY`, `XAI_BASE_URL`, `XAI_MODEL` |
-| Google Gemini | `GEMINI_API_KEY`, `GEMINI_BASE_URL`, `GEMINI_MODEL` |
-| Ollama | `OLLAMA_BASE_URL`, `OLLAMA_MODEL` |
+| Anthropic | `ANTHROPIC_API_KEY` |
+| OpenAI-compatible | `OPENAI_API_KEY`, `OPENAI_BASE_URL` |
+| DeepSeek | `DEEPSEEK_API_KEY` |
+| xAI / Grok | `XAI_API_KEY`, `XAI_BASE_URL` |
+| Google Gemini | `GEMINI_API_KEY`, `GEMINI_BASE_URL` |
+| Ollama | `OLLAMA_BASE_URL` |
+
+Model names belong to workload slots rather than provider credentials. Configure
+the main pipeline with `MAIN_LLM_MODEL`, and configure each adversarial reviewer
+with its corresponding reviewer model variable.
 
 ## Adversarial review (ADR-011)
 
@@ -48,10 +53,13 @@ The GitHub webhook route is also under `/api/v1`, but it uses the
 |---|---|---|
 | `ADVERSARIAL_REVIEW_ENABLED` | `false` | Run the dual-model review gate after publishing; when `false`, leave every PR for manual handling and never auto-merge |
 | `REVIEWER_ADVOCATE_PROVIDER` | `anthropic` | Provider family instructed to build the acceptance case |
+| `REVIEWER_ADVOCATE_MODEL` | `claude-sonnet-4-6` | Model used by the advocate reviewer |
 | `REVIEWER_CRITIC_PROVIDER` | `openai` | Provider family instructed to hunt for rejection reasons |
+| `REVIEWER_CRITIC_MODEL` | `gpt-4o` | Model used by the critic reviewer |
 
-The two values must name different supported provider families. Reviewer slots
-reuse the API credentials, endpoint, and model configured for that provider.
+The two provider values must name different supported provider families. Reviewer
+slots select their models independently and reuse the API credentials and endpoint
+configured for the selected provider.
 Every `/ingest` and `/publish` operation records the structured outcome in a PR
 comment. Reviewer disagreement, invalid output, or unavailability escalates to
 human review. Tier 2 always requires human approval. Only unanimous Tier 1
@@ -137,9 +145,9 @@ instead of a separate one. Do not set `VECTOR_DB_PATH` in
 container's hardcoded `/data/vectors.db` with a path relative to the
 container's working directory rather than the bind-mounted data directory.
 
-`EMBEDDING_PROVIDER` is independent from `LLM_PROVIDER`: Anthropic and
+`EMBEDDING_PROVIDER` is independent from `MAIN_LLM_PROVIDER`: Anthropic and
 DeepSeek don't offer an embeddings API, so an OpenAI-compatible or Ollama
-embedding model is required regardless of which `LLM_PROVIDER` is used for
+embedding model is required regardless of which `MAIN_LLM_PROVIDER` is used for
 classification and augmentation.
 
 Postgres with `pgvector` is the documented scale-out option once a

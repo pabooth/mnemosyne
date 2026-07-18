@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from ..llm.base import LLMProvider
 from ..models import (
+    MAX_REVIEW_CONCERN_CHARS,
     AdversarialReviewResult,
     ProcessedDocument,
     PublishResult,
@@ -98,6 +99,14 @@ class AdversarialReviewer:
             self._run("critic", self._critic, self._critic_family, doc),
             return_exceptions=True,
         )
+        for role, report in zip(("advocate", "critic"), reports, strict=True):
+            if isinstance(report, BaseException):
+                logger.warning(
+                    "Adversarial %s reviewer failed: %s",
+                    role,
+                    report,
+                    exc_info=(type(report), report, report.__traceback__),
+                )
         advocate = reports[0] if isinstance(reports[0], ReviewerReport) else None
         critic = reports[1] if isinstance(reports[1], ReviewerReport) else None
         effective_tier = (
@@ -170,6 +179,16 @@ class AdversarialReviewer:
         raw = await provider.complete(system, build_markdown(doc))
         try:
             payload = json.loads(_strip_fence(raw))
+            concerns = payload.get("concerns")
+            if isinstance(concerns, list):
+                # Reviewer prose is untrusted model output. Preserve the report
+                # while enforcing the same audit-string bound as the model.
+                payload["concerns"] = [
+                    concern[:MAX_REVIEW_CONCERN_CHARS]
+                    if isinstance(concern, str)
+                    else concern
+                    for concern in concerns
+                ]
             payload.update(role=role, provider_family=family)
             return ReviewerReport.model_validate(payload)
         except (json.JSONDecodeError, ValidationError, AttributeError) as error:
