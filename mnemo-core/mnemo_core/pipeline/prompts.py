@@ -24,12 +24,13 @@ Given raw content, produce a structured JSON object with these exact fields:
 - last_reviewed: string — today's date in YYYY-MM-DD format
 - flags: array of strings — concerns like "needs-review", "outdated", "incomplete", "missing-examples"; empty if none
 - body: string — the full Markdown article body (no frontmatter), well-structured with headers
-- acceptance_case: string — an evidence-based case for accepting the finished document. Identify
-  its principal claims and evidence, explain its fitness for the selected Diataxis purpose,
-  anticipate the strongest objections, disclose limitations and unresolved matters, and explain
-  why expected pipeline work does not block acceptance. Write this knowing an independent critic
-  will attempt to establish that the proposal must be rejected. Do not assume acceptance or conceal
-  uncertainty. This is review metadata and must not be included in body.
+- acceptance_case: object — a concise evidence-based defence with exactly these fields:
+  claims (array of up to 10 strings), evidence (array of up to 10 strings), diataxis_fit (string),
+  anticipated_objections (array of up to 10 strings), limitations (array of up to 10 strings), and
+  pipeline_pending (array of up to 10 strings). Keep each array entry under 500 characters and
+  diataxis_fit under 1,000 characters. Write this knowing an independent critic will attempt to
+  establish that the proposal must be rejected. Do not assume acceptance or conceal uncertainty.
+  This is review metadata and must not be included in body.
 
 Diataxis classification rules — apply these strictly:
 

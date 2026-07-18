@@ -69,6 +69,10 @@ at any stage escalates to human review. For Tier 1 the judge may accept, reject,
 or escalate; only accept attempts an automatic squash merge. For Tier 2 the
 judge recommends accept or reject and human approval is always mandatory.
 
+The acceptance case is structured into bounded claims, evidence, Diataxis fit, anticipated
+objections, limitations, and pending pipeline work. It is review metadata and is never published
+as document content.
+
 Setting `ADVERSARIAL_REVIEW_ENABLED=false` skips critic and judge calls, the review
 comment, and automatic merge. Publishing still creates a branch and pull request,
 and the API returns `null` for the review result. This is an operational fallback;

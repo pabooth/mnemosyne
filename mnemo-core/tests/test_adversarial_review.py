@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from mnemo_core.models import (
+    AcceptanceCase,
     AdversarialReviewResult,
     CriticReport,
     JudgeReport,
@@ -16,6 +17,12 @@ from mnemo_core.pipeline.review import (
     _judge_prompt,
 )
 from tests.conftest import FakeLLM, processed_doc
+
+ACCEPTANCE_CASE = AcceptanceCase(
+    claims=["The proposal is accurate."],
+    evidence=["The document supplies supporting detail."],
+    diataxis_fit="It fits its selected Diataxis type.",
+)
 
 
 class FakeSink:
@@ -128,7 +135,7 @@ async def test_missing_acceptance_case_fails_closed_without_model_calls():
         judge_family="gemini",
         audit_sink=FakeSink(),
     )
-    result = await subject.review(processed_doc(acceptance_case=""), published())
+    result = await subject.review(processed_doc(acceptance_case=None), published())
     assert result.outcome == "escalated"
     assert result.requires_human_review is True
     assert "author acceptance case" in result.reason
@@ -172,9 +179,9 @@ async def test_judge_receives_document_acceptance_case_and_critic_challenge():
         judge_family="gemini",
         audit_sink=FakeSink(),
     )
-    doc = processed_doc(acceptance_case="Evidence for the proposal.")
+    doc = processed_doc(acceptance_case=ACCEPTANCE_CASE)
     await subject.review(doc, published())
-    assert "AUTHOR ACCEPTANCE CASE\n\nEvidence for the proposal." in judge.last_user
+    assert '"The proposal is accurate."' in judge.last_user
     assert "CRITIC CHALLENGE" in judge.last_user
     assert "Unsupported claim." in judge.last_user
 
@@ -250,7 +257,7 @@ async def test_audit_failure_does_not_turn_adjudication_into_error():
 def accepted_result(*, tier="tier-1", human=False) -> AdversarialReviewResult:
     return AdversarialReviewResult(
         tier=tier,
-        acceptance_case="The author supplied evidence.",
+        acceptance_case=ACCEPTANCE_CASE,
         critic=CriticReport(
             provider_family="openai",
             recommended_tier=tier,

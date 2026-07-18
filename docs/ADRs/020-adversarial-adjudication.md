@@ -97,7 +97,10 @@ and have a third family adjudicate the document and both arguments.
 The main processing model produces both the processed document and an evidence-based
 `acceptance_case`. The case identifies the document's principal claims, supporting evidence,
 fitness for its Diataxis purpose, anticipated objections, limitations, and expected pipeline work.
-It is review metadata and is never published as KB content.
+It is a bounded structured object with separate `claims`, `evidence`, `diataxis_fit`,
+`anticipated_objections`, `limitations`, and `pipeline_pending` fields. It is review metadata and
+is never published as KB content. Structured fields prevent the defence from becoming an
+unbounded persuasive essay and give the critic distinct evidence and objection material to test.
 
 After the PR is created, the critic receives the exact proposed document and its acceptance case. It
 produces a rejection case that attempts to establish material correctness, safety, provenance,

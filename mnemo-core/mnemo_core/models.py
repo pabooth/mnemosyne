@@ -53,6 +53,24 @@ class DuplicateCandidate(BaseModel):
     score: float
 
 
+class AcceptanceCase(BaseModel):
+    """Structured author defence supplied to adversarial adjudication."""
+
+    claims: list[str] = Field(default_factory=list, max_length=10)
+    evidence: list[str] = Field(default_factory=list, max_length=10)
+    diataxis_fit: str = Field(min_length=1, max_length=1_000)
+    anticipated_objections: list[str] = Field(default_factory=list, max_length=10)
+    limitations: list[str] = Field(default_factory=list, max_length=10)
+    pipeline_pending: list[str] = Field(default_factory=list, max_length=10)
+
+    @field_validator(
+        "claims", "evidence", "anticipated_objections", "limitations", "pipeline_pending"
+    )
+    @classmethod
+    def validate_entries(cls, values: list[str]) -> list[str]:
+        return _validate_bounded_strings(values, "acceptance case entries", max_chars=500)
+
+
 class ProcessedDocument(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -72,7 +90,7 @@ class ProcessedDocument(BaseModel):
     body: str = Field(min_length=1, max_length=MAX_BODY_CHARS)
     # ADR-020 review metadata. It travels with previews and durable jobs but
     # build_markdown deliberately excludes it from published KB content.
-    acceptance_case: str = Field(default="", max_length=8_000)
+    acceptance_case: AcceptanceCase | None = None
     duplicate_candidates: list[DuplicateCandidate] = Field(default_factory=list)
 
     @field_validator("tags", "flags")
@@ -120,7 +138,7 @@ class JudgeReport(BaseModel):
 
 class AdversarialReviewResult(BaseModel):
     tier: ReviewTier
-    acceptance_case: str = ""
+    acceptance_case: AcceptanceCase | None = None
     critic: CriticReport | None = None
     judge: JudgeReport | None = None
     outcome: Literal["accepted", "rejected", "escalated"]
