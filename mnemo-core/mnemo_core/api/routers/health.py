@@ -32,6 +32,10 @@ def _llm_is_configured(cfg: Settings) -> bool:
         return bool(cfg.openai_api_key)
     if cfg.main_llm_provider == "deepseek":
         return bool(cfg.deepseek_api_key)
+    if cfg.main_llm_provider == "xai":
+        return bool(cfg.xai_api_key)
+    if cfg.main_llm_provider == "gemini":
+        return bool(cfg.gemini_api_key)
     if cfg.main_llm_provider == "ollama":
         return bool(cfg.ollama_base_url)
     return False

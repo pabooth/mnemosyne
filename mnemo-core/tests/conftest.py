@@ -55,12 +55,13 @@ def reset_settings():
 
 
 @pytest.fixture
-def test_settings() -> Settings:
+def test_settings(tmp_path) -> Settings:
     return Settings(
         mnemo_api_token="test-secret",
         github_token="gh-test",
         github_repo="acme/kb",
         main_llm_provider="anthropic",
+        state_db_path=str(tmp_path / "state.db"),
     )
 
 

@@ -67,7 +67,7 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
     app.include_router(webhooks.router, prefix=v1)
 
     def runner_factory() -> PipelineRunner:
-        return build_runner(get_settings())
+        return build_runner(get_settings(), review_store=app.state.job_store)
 
     app.mount("/mcp", create_mcp_asgi(runner_factory=runner_factory))
 

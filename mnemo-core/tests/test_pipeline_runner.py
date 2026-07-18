@@ -4,6 +4,7 @@ import pytest
 
 from mnemo_core.api.deps import build_runner
 from mnemo_core.config import Settings
+from mnemo_core.jobs import JobStore
 from mnemo_core.models import AdversarialReviewResult, ProcessedDocument
 from mnemo_core.pipeline import ProcessingError
 from mnemo_core.pipeline.dedup import DuplicateChecker
@@ -111,7 +112,7 @@ async def test_run_processes_then_publishes():
     assert result.publish.pr_url == "https://github.com/acme/kb/pull/1"
 
 
-async def test_publish_attaches_review_and_run_passes_it_through():
+async def test_publish_attaches_review_and_run_passes_it_through(tmp_path):
     class StubReviewer:
         def __init__(self):
             self.calls = []
@@ -130,6 +131,7 @@ async def test_publish_attaches_review_and_run_passes_it_through():
         publisher=FakePublisher(),
         llm=FakeLLM(llm_json_response()),
         reviewer=reviewer,
+        review_store=JobStore(str(tmp_path / "state.db")),
     )
 
     published = await runner.publish(processed_doc())
@@ -138,10 +140,12 @@ async def test_publish_attaches_review_and_run_passes_it_through():
 
     ingested = await runner.run(sample_input())
     assert ingested.review == ingested.publish.review
-    assert len(reviewer.calls) == 2
+    # The PR URL is the durable idempotency key, so retrying the same
+    # publication reuses its completed review instead of auditing twice.
+    assert len(reviewer.calls) == 1
 
 
-async def test_review_continues_when_client_cancels_after_publish():
+async def test_review_continues_when_client_cancels_after_publish(tmp_path):
     class SlowReviewer:
         def __init__(self):
             self.started = asyncio.Event()
@@ -164,10 +168,11 @@ async def test_review_continues_when_client_cancels_after_publish():
         publisher=FakePublisher(),
         llm=FakeLLM(llm_json_response()),
         reviewer=reviewer,
+        review_store=JobStore(str(tmp_path / "state.db")),
     )
 
     request = asyncio.create_task(runner.publish(processed_doc()))
-    await reviewer.started.wait()
+    await asyncio.wait_for(reviewer.started.wait(), timeout=1)
     request.cancel()
     with pytest.raises(asyncio.CancelledError):
         await request
@@ -176,7 +181,7 @@ async def test_review_continues_when_client_cancels_after_publish():
     await asyncio.wait_for(reviewer.completed.wait(), timeout=1)
 
 
-async def test_publish_can_return_while_review_continues():
+async def test_publish_can_return_while_review_continues(tmp_path):
     class SlowReviewer:
         def __init__(self):
             self.started = asyncio.Event()
@@ -199,6 +204,7 @@ async def test_publish_can_return_while_review_continues():
         publisher=FakePublisher(),
         llm=FakeLLM(llm_json_response()),
         reviewer=reviewer,
+        review_store=JobStore(str(tmp_path / "state.db")),
     )
 
     published = await runner.publish(processed_doc(), wait_for_review=False)
@@ -207,6 +213,44 @@ async def test_publish_can_return_while_review_continues():
     await asyncio.wait_for(reviewer.started.wait(), timeout=1)
     reviewer.release.set()
     await asyncio.wait_for(reviewer.completed.wait(), timeout=1)
+
+
+async def test_pending_review_resumes_after_restart(tmp_path):
+    class StubReviewer:
+        def __init__(self):
+            self.completed = asyncio.Event()
+
+        async def review(self, doc, published):
+            self.completed.set()
+            return AdversarialReviewResult(
+                tier=doc.review_tier,
+                outcome="escalated",
+                requires_human_review=True,
+                reason="Recovered review.",
+            )
+
+    path = str(tmp_path / "state.db")
+    store = JobStore(path)
+    published = FakePublisher().result
+    store.create_review_job(processed_doc(), published)
+    assert store.claim_review_job(published.pr_url)
+
+    reviewer = StubReviewer()
+    restarted_store = JobStore(path)
+    build_runner(
+        publisher=FakePublisher(),
+        llm=FakeLLM(llm_json_response()),
+        reviewer=reviewer,
+        review_store=restarted_store,
+    )
+
+    await asyncio.wait_for(reviewer.completed.wait(), timeout=1)
+    for _ in range(10):
+        job = restarted_store.get_review_job(published.pr_url)
+        if job["status"] == "succeeded":
+            break
+        await asyncio.sleep(0)
+    assert job["result"].reason == "Recovered review."
 
 
 def test_legacy_processed_document_defaults_to_human_gated_tier():
