@@ -5,6 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 DiataxisType = Literal["tutorial", "how-to", "reference", "explanation"]
 ReviewTier = Literal["tier-1", "tier-2"]
 ReviewVerdict = Literal["accept", "reject"]
+DocumentStatus = Literal[
+    "draft", "review", "proposed", "accepted", "modified", "superseded"
+]
 
 MAX_DOCUMENT_CHARS = 1_000_000
 MAX_BODY_CHARS = 1_000_000
@@ -59,7 +62,7 @@ class ProcessedDocument(BaseModel):
     # documents with no matching template.
     review_tier: ReviewTier = "tier-2"
     sub_label: str = Field(default="", max_length=100, pattern=r"^[\w ./-]*$")
-    status: Literal["draft", "review"] = "draft"
+    status: DocumentStatus = "draft"
     tags: list[str] = Field(max_length=25)
     summary: str = Field(min_length=1, max_length=1_000)
     owner: str = Field(min_length=1, max_length=100)

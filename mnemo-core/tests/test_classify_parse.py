@@ -16,6 +16,15 @@ def test_parse_processed_document_valid_json():
     assert doc.type == "how-to"
 
 
+@pytest.mark.parametrize(
+    "status",
+    ["draft", "review", "proposed", "accepted", "modified", "superseded"],
+)
+def test_parse_processed_document_accepts_document_statuses(status):
+    doc = parse_processed_document(llm_json_response(status=status))
+    assert doc.status == status
+
+
 def test_parse_processed_document_fenced_json():
     doc = parse_processed_document(f"```json\n{llm_json_response()}\n```")
     assert doc.title == VALID_PROCESSED_JSON["title"]
