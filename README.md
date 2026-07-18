@@ -125,7 +125,7 @@ but authenticate with `X-Hub-Signature-256` instead of the bearer token.
 
 ## Providers
 
-Set `LLM_PROVIDER` to one of:
+Set `MAIN_LLM_PROVIDER` to one of:
 
 - `anthropic`
 - `openai`
@@ -135,13 +135,15 @@ Set `LLM_PROVIDER` to one of:
 - `ollama`
 
 OpenAI-compatible endpoints can be selected using `OPENAI_BASE_URL`. Provider
-and operational settings are documented in
+credentials and endpoints are configured once, while `MAIN_LLM_MODEL` selects
+the model used by the processing pipeline. Operational settings are documented in
 [configuration.md](docs/configuration.md).
 
 Adversarial review is off by default. Set `ADVERSARIAL_REVIEW_ENABLED=true` to
 enable it, then configure `REVIEWER_ADVOCATE_PROVIDER` and
-`REVIEWER_CRITIC_PROVIDER`. They must name different provider families and
-reuse the corresponding provider credentials and model configuration. See
+`REVIEWER_ADVOCATE_MODEL`, plus `REVIEWER_CRITIC_PROVIDER` and
+`REVIEWER_CRITIC_MODEL`. The providers must name different families. Each slot
+selects its model independently and reuses the corresponding credentials. See
 [configuration.md](docs/configuration.md#adversarial-review-adr-011) for the
 full setup and fallback behaviour.
 

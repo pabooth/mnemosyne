@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mnemosyne": {
+      "type": "sse",
+      "url": "http://localhost:7777/mcp/sse",
+      "headers": {
+        "Authorization": "Bearer ${MNEMO_API_TOKEN}"
+      }
+    }
+  }
+}

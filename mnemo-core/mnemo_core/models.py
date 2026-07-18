@@ -8,12 +8,15 @@ ReviewVerdict = Literal["accept", "reject"]
 
 MAX_DOCUMENT_CHARS = 1_000_000
 MAX_BODY_CHARS = 1_000_000
+MAX_REVIEW_CONCERN_CHARS = 500
 
 
-def _validate_bounded_strings(values: list[str], label: str) -> list[str]:
+def _validate_bounded_strings(
+    values: list[str], label: str, max_chars: int = 200
+) -> list[str]:
     cleaned = [value.strip() for value in values]
-    if any(not value or len(value) > 200 for value in cleaned):
-        raise ValueError(f"{label} must contain between 1 and 200 characters")
+    if any(not value or len(value) > max_chars for value in cleaned):
+        raise ValueError(f"{label} must contain between 1 and {max_chars} characters")
     return cleaned
 
 
@@ -89,7 +92,9 @@ class ReviewerReport(BaseModel):
     @field_validator("concerns")
     @classmethod
     def validate_concerns(cls, values: list[str]) -> list[str]:
-        return _validate_bounded_strings(values, "concerns")
+        return _validate_bounded_strings(
+            values, "concerns", max_chars=MAX_REVIEW_CONCERN_CHARS
+        )
 
 
 class AdversarialReviewResult(BaseModel):

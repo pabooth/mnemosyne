@@ -15,4 +15,8 @@ class AnthropicProvider(LLMProvider):
             system=system,
             messages=[{"role": "user", "content": user}],
         )
-        return msg.content[0].text
+        if getattr(msg, "stop_reason", None) == "max_tokens":
+            raise RuntimeError(
+                f"Anthropic response was truncated at the {max_tokens}-token output limit"
+            )
+        return "".join(block.text for block in msg.content if block.type == "text")

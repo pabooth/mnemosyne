@@ -53,7 +53,8 @@ async def evaluate() -> dict:
         )
     passed = sum(outcome["passed"] for outcome in outcomes)
     return {
-        "provider": get_settings().llm_provider,
+        "provider": get_settings().main_llm_provider,
+        "model": get_settings().main_llm_model,
         "accuracy": passed / len(outcomes),
         "passed": passed,
         "total": len(outcomes),

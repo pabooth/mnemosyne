@@ -111,7 +111,10 @@ async def handle_tool(
 
     try:
         if name == "submit_document":
-            result = await runner.run(doc_input)
+            # MCP clients commonly impose a short tool timeout. Return as soon
+            # as the governed PR exists; its adversarial review continues in
+            # the runner and records the outcome on GitHub.
+            result = await runner.run(doc_input, wait_for_review=False)
             return [
                 types.TextContent(
                     type="text",

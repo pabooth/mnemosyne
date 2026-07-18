@@ -5,7 +5,13 @@ import time
 from opentelemetry import metrics
 
 from ..llm.base import LLMProvider
-from ..models import DocumentInput, IngestResult, ProcessedDocument, PublishResult
+from ..models import (
+    AdversarialReviewResult,
+    DocumentInput,
+    IngestResult,
+    ProcessedDocument,
+    PublishResult,
+)
 from . import ProcessingError, PublishError
 from .classify import classify_augment_format
 from .dedup import DuplicateChecker
@@ -32,6 +38,7 @@ class PipelineRunner:
         self._timeout_seconds = timeout_seconds
         self._templates = templates if templates is not None else TemplateSet([])
         self._reviewer = reviewer
+        self._review_tasks: set[asyncio.Task[AdversarialReviewResult]] = set()
         meter = metrics.get_meter("mnemo-core.pipeline")
         self._operations = meter.create_counter(
             "mnemo.pipeline.operations",
@@ -66,14 +73,24 @@ class PipelineRunner:
         self._record("process", "succeeded", started)
         return result
 
-    async def publish(self, doc: ProcessedDocument) -> PublishResult:
+    async def publish(
+        self, doc: ProcessedDocument, *, wait_for_review: bool = True
+    ) -> PublishResult:
         """Commit a processed document to Git and raise a PR."""
         started = time.perf_counter()
         try:
             async with asyncio.timeout(self._timeout_seconds):
                 result = await self._publisher.publish(doc)
                 if self._reviewer is not None:
-                    review = await self._reviewer.review(doc, result)
+                    review_task = asyncio.create_task(self._reviewer.review(doc, result))
+                    self._review_tasks.add(review_task)
+                    review_task.add_done_callback(self._review_finished)
+                    if not wait_for_review:
+                        self._record("publish", "succeeded", started)
+                        return result
+                    # Once a PR exists, its governance review must survive an
+                    # MCP client timeout or disconnect.
+                    review = await asyncio.shield(review_task)
                     result = result.model_copy(update={"review": review})
             self._record("publish", "succeeded", started)
             return result
@@ -84,13 +101,28 @@ class PipelineRunner:
             self._record("publish", "failed", started)
             raise
 
-    async def run(self, doc: DocumentInput) -> IngestResult:
+    async def run(
+        self, doc: DocumentInput, *, wait_for_review: bool = True
+    ) -> IngestResult:
         """Full pipeline: process then publish."""
         processed = await self.process(doc)
-        result = await self.publish(processed)
+        result = await self.publish(processed, wait_for_review=wait_for_review)
         return IngestResult(document=processed, publish=result, review=result.review)
 
     def _record(self, operation: str, status: str, started: float) -> None:
         attributes = {"operation": operation, "status": status}
         self._operations.add(1, attributes)
         self._duration.record(time.perf_counter() - started, attributes)
+
+    def _review_finished(self, task: asyncio.Task[AdversarialReviewResult]) -> None:
+        self._review_tasks.discard(task)
+        if task.cancelled():
+            logger.warning("Adversarial review task was cancelled after publish")
+            return
+        error = task.exception()
+        if error is not None:
+            logger.error(
+                "Adversarial review task failed after publish: %s",
+                error,
+                exc_info=(type(error), error, error.__traceback__),
+            )

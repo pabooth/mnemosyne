@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from mnemo_core.api.deps import build_runner
@@ -137,6 +139,74 @@ async def test_publish_attaches_review_and_run_passes_it_through():
     ingested = await runner.run(sample_input())
     assert ingested.review == ingested.publish.review
     assert len(reviewer.calls) == 2
+
+
+async def test_review_continues_when_client_cancels_after_publish():
+    class SlowReviewer:
+        def __init__(self):
+            self.started = asyncio.Event()
+            self.release = asyncio.Event()
+            self.completed = asyncio.Event()
+
+        async def review(self, doc, published):
+            self.started.set()
+            await self.release.wait()
+            self.completed.set()
+            return AdversarialReviewResult(
+                tier=doc.review_tier,
+                outcome="escalated",
+                requires_human_review=True,
+                reason="Test escalation.",
+            )
+
+    reviewer = SlowReviewer()
+    runner = build_runner(
+        publisher=FakePublisher(),
+        llm=FakeLLM(llm_json_response()),
+        reviewer=reviewer,
+    )
+
+    request = asyncio.create_task(runner.publish(processed_doc()))
+    await reviewer.started.wait()
+    request.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await request
+
+    reviewer.release.set()
+    await asyncio.wait_for(reviewer.completed.wait(), timeout=1)
+
+
+async def test_publish_can_return_while_review_continues():
+    class SlowReviewer:
+        def __init__(self):
+            self.started = asyncio.Event()
+            self.release = asyncio.Event()
+            self.completed = asyncio.Event()
+
+        async def review(self, doc, published):
+            self.started.set()
+            await self.release.wait()
+            self.completed.set()
+            return AdversarialReviewResult(
+                tier=doc.review_tier,
+                outcome="escalated",
+                requires_human_review=True,
+                reason="Test escalation.",
+            )
+
+    reviewer = SlowReviewer()
+    runner = build_runner(
+        publisher=FakePublisher(),
+        llm=FakeLLM(llm_json_response()),
+        reviewer=reviewer,
+    )
+
+    published = await runner.publish(processed_doc(), wait_for_review=False)
+
+    assert published.review is None
+    await asyncio.wait_for(reviewer.started.wait(), timeout=1)
+    reviewer.release.set()
+    await asyncio.wait_for(reviewer.completed.wait(), timeout=1)
 
 
 def test_legacy_processed_document_defaults_to_human_gated_tier():

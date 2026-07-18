@@ -17,12 +17,13 @@ from ..vector.factory import get_vector_index
 class _DeferredProvider(LLMProvider):
     """Delay credential validation until the reviewer is actually invoked."""
 
-    def __init__(self, family: str, cfg: Settings) -> None:
+    def __init__(self, family: str, model: str, cfg: Settings) -> None:
         self._family = family
+        self._model = model
         self._cfg = cfg
 
     async def complete(self, system: str, user: str, max_tokens: int = 4000) -> str:
-        provider = get_provider_for(self._family, self._cfg)
+        provider = get_provider_for(self._family, self._model, self._cfg)
         return await provider.complete(system, user, max_tokens)
 
 
@@ -59,8 +60,16 @@ def build_runner(
 def build_adversarial_reviewer(cfg: Settings | None = None) -> AdversarialReviewer:
     cfg = get_settings() if cfg is None else cfg
     return AdversarialReviewer(
-        _DeferredProvider(cfg.reviewer_advocate_provider, cfg),
-        _DeferredProvider(cfg.reviewer_critic_provider, cfg),
+        _DeferredProvider(
+            cfg.reviewer_advocate_provider,
+            cfg.reviewer_advocate_model,
+            cfg,
+        ),
+        _DeferredProvider(
+            cfg.reviewer_critic_provider,
+            cfg.reviewer_critic_model,
+            cfg,
+        ),
         advocate_family=cfg.reviewer_advocate_provider,
         critic_family=cfg.reviewer_critic_provider,
         audit_sink=GitHubReviewAuditSink(cfg.github_token, cfg.github_repo),
