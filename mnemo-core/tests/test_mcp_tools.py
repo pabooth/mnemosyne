@@ -1,7 +1,10 @@
+import asyncio
+
 from fastapi.testclient import TestClient
 
 from mnemo_core.api.app import create_app
 from mnemo_core.api.deps import build_runner
+from mnemo_core.jobs import JobManager, JobStore
 from mnemo_core.mcp.server import _mounted_path, handle_tool
 from tests.conftest import FakeLLM, FakePublisher, llm_json_response
 
@@ -21,19 +24,28 @@ async def test_process_document_tool(configured_settings):
     assert "Deploy the app" in result[0].text
 
 
-async def test_submit_document_tool(configured_settings):
+async def test_submit_document_tool_queues_durable_ingest(configured_settings, tmp_path):
     llm = FakeLLM(llm_json_response())
     publisher = FakePublisher()
     runner = build_runner(configured_settings, publisher=publisher, llm=llm)
+    manager = JobManager(JobStore(str(tmp_path / "state.db")))
 
     result = await handle_tool(
         "submit_document",
         {"content": "hello"},
         runner,
+        manager,
     )
 
+    assert publisher.last_doc is None
+    assert "Document accepted for durable ingestion" in result[0].text
+    assert "Job:" in result[0].text
+
+    await asyncio.gather(*manager._tasks.values())
     assert publisher.last_doc is not None
-    assert "https://github.com/acme/kb/pull/1" in result[0].text
+    jobs = manager.store.list_jobs(actor="mcp")
+    assert jobs[0]["status"] == "succeeded"
+    assert jobs[0]["result"]["publish"]["pr_url"] == "https://github.com/acme/kb/pull/1"
 
 
 def test_mcp_sse_route_reaches_auth(configured_settings):

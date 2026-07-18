@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- MCP `submit_document` now queues a durable ingest job and returns its job ID
+  immediately, preventing short MCP client timeouts from cancelling processing
+  before the pull request is created.
+
 - Adversarial-review configuration is intentionally breaking:
   `REVIEWER_ADVOCATE_PROVIDER` and `REVIEWER_ADVOCATE_MODEL` are removed;
   deployments enabling review must add `REVIEWER_JUDGE_PROVIDER` and

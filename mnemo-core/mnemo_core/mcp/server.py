@@ -21,6 +21,7 @@ from starlette.types import Receive, Scope, Send
 
 from ..auth import auth_is_configured, bearer_token_is_valid
 from ..config import get_settings
+from ..jobs import JobManager
 from ..models import DocumentInput
 from ..pipeline import PipelineError
 from ..pipeline.runner import PipelineRunner
@@ -28,6 +29,7 @@ from ..pipeline.runner import PipelineRunner
 _server = Server("mnemo-core")
 _sse_transport = SseServerTransport("/messages")
 _default_runner_factory: Callable[[], PipelineRunner] | None = None
+_default_job_manager: JobManager | None = None
 
 
 def _runner_factory() -> PipelineRunner:
@@ -100,6 +102,7 @@ async def handle_tool(
     name: str,
     arguments: dict,
     runner: PipelineRunner,
+    job_manager: JobManager | None = None,
 ) -> list[types.TextContent]:
     doc_input = DocumentInput(
         content=arguments["content"],
@@ -111,9 +114,21 @@ async def handle_tool(
 
     try:
         if name == "submit_document":
-            # MCP clients commonly impose a short tool timeout. Return as soon
-            # as the governed PR exists; its adversarial review continues in
-            # the runner and records the outcome on GitHub.
+            if job_manager is not None:
+                # MCP clients commonly impose a short tool timeout. Durable
+                # ingestion must outlive the request so slow model processing
+                # cannot be cancelled before the governed PR is created.
+                job = job_manager.submit("ingest", "mcp", doc_input, runner)
+                return [
+                    types.TextContent(
+                        type="text",
+                        text=(
+                            "Document accepted for durable ingestion.\n"
+                            f"Job: {job['id']}\n"
+                            "The pull request will be created when processing completes."
+                        ),
+                    )
+                ]
             result = await runner.run(doc_input, wait_for_review=False)
             return [
                 types.TextContent(
@@ -144,7 +159,7 @@ async def handle_tool(
 
 @_server.call_tool()
 async def _call_tool(name: str, arguments: dict) -> list[types.TextContent]:
-    return await handle_tool(name, arguments, _runner_factory())
+    return await handle_tool(name, arguments, _runner_factory(), _default_job_manager)
 
 
 class _MCPASGIRouter:
@@ -217,7 +232,9 @@ def _mounted_path(scope: Scope) -> str:
 
 def create_mcp_asgi(
     runner_factory: Callable[[], PipelineRunner] | None = None,
+    job_manager: JobManager | None = None,
 ) -> _MCPASGIRouter:
-    global _default_runner_factory
+    global _default_job_manager, _default_runner_factory
     _default_runner_factory = runner_factory
+    _default_job_manager = job_manager
     return _MCPASGIRouter()

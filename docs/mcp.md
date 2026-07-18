@@ -3,7 +3,11 @@
 Mnemosyne exposes intake tools only:
 
 - `process_document`: generate a preview without publishing
-- `submit_document`: process and create a pull request
+- `submit_document`: queue durable processing and pull-request creation
+
+`submit_document` returns a job identifier immediately. Processing continues inside
+`mnemo-core` after the MCP request ends, so client tool timeouts cannot cancel publication.
+The pull request is created when the durable ingest job completes.
 
 The network endpoint uses SSE:
 
