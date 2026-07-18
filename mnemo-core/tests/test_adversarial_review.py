@@ -131,6 +131,7 @@ async def test_missing_acceptance_case_fails_closed_without_model_calls():
     result = await subject.review(processed_doc(acceptance_case=""), published())
     assert result.outcome == "escalated"
     assert result.requires_human_review is True
+    assert "author acceptance case" in result.reason
     assert critic.calls == []
     assert judge.calls == []
 
@@ -150,6 +151,7 @@ async def test_invalid_critic_response_escalates_without_calling_judge():
     assert result.critic is None
     assert result.judge is None
     assert judge.calls == []
+    assert "critic" in result.reason
 
 
 async def test_invalid_judge_response_preserves_critic_and_escalates():
@@ -157,6 +159,7 @@ async def test_invalid_judge_response_preserves_critic_and_escalates():
     assert result.outcome == "escalated"
     assert result.critic is not None
     assert result.judge is None
+    assert "judge" in result.reason
 
 
 async def test_judge_receives_document_acceptance_case_and_critic_challenge():

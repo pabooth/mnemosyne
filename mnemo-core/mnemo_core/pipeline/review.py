@@ -97,16 +97,29 @@ class AdversarialReviewer:
         acceptance_case = doc.acceptance_case.strip()
         critic = None
         judge = None
+        failure_stage: str | None = None
+        if not acceptance_case:
+            failure_stage = "author acceptance case"
         if acceptance_case:
             try:
                 critic = await self._run_critic(doc, acceptance_case)
-                judge = await self._run_judge(doc, acceptance_case, critic)
             except Exception as error:
+                failure_stage = "critic"
                 logger.warning(
-                    "Adversarial adjudication failed: %s",
+                    "Adversarial critic failed: %s",
                     error,
                     exc_info=(type(error), error, error.__traceback__),
                 )
+            if critic is not None:
+                try:
+                    judge = await self._run_judge(doc, acceptance_case, critic)
+                except Exception as error:
+                    failure_stage = "judge"
+                    logger.warning(
+                        "Adversarial judge failed: %s",
+                        error,
+                        exc_info=(type(error), error, error.__traceback__),
+                    )
         effective_tier = (
             "tier-2"
             if doc.review_tier == "tier-2"
@@ -117,7 +130,8 @@ class AdversarialReviewer:
             else "tier-1"
         )
 
-        if not acceptance_case or critic is None or judge is None:
+        if failure_stage is not None or critic is None or judge is None:
+            failed = failure_stage or ("critic" if critic is None else "judge")
             result = AdversarialReviewResult(
                 tier=effective_tier,
                 acceptance_case=acceptance_case,
@@ -125,7 +139,7 @@ class AdversarialReviewer:
                 judge=judge,
                 outcome="escalated",
                 requires_human_review=True,
-                reason="The acceptance case, critic, or judge was unavailable or invalid.",
+                reason=f"The {failed} was unavailable or invalid; human review is required.",
             )
         elif effective_tier == "tier-2":
             if judge.verdict == "escalate":
