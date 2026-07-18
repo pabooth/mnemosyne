@@ -30,7 +30,7 @@ export async function postJson({ apiUrl, apiToken }, path, body) {
     });
   } catch (error) {
     if (error && error.name === 'AbortError') {
-      throw new Error('mnemo-core did not respond within 30 seconds.');
+      throw new Error('mnemo-core did not respond within 60 seconds.');
     }
     throw new Error('Could not reach mnemo-core. Is the server running?');
   } finally {

@@ -1,7 +1,7 @@
 export const DEFAULT_API_URL = typeof window === 'undefined'
   ? 'http://localhost:7777'
   : window.location.origin;
-export const API_TIMEOUT_MS = 30000;
+export const API_TIMEOUT_MS = 60000;
 
 export const CONTENT_TYPES = [
   { id: 'auto', label: 'Auto-detect', description: 'Let the pipeline decide' },
