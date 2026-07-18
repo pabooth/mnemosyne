@@ -11,6 +11,7 @@ from mnemo_core.models import (
     PublishResult,
 )
 from mnemo_core.pipeline.review import (
+    REVIEW_OUTPUT_MAX_TOKENS,
     AdversarialReviewer,
     GitHubReviewAuditSink,
     _critic_prompt,
@@ -184,6 +185,8 @@ async def test_judge_receives_document_acceptance_case_and_critic_challenge():
     assert '"The proposal is accurate."' in judge.last_user
     assert "CRITIC CHALLENGE" in judge.last_user
     assert "Unsupported claim." in judge.last_user
+    assert critic.last_max_tokens == REVIEW_OUTPUT_MAX_TOKENS
+    assert judge.last_max_tokens == REVIEW_OUTPUT_MAX_TOKENS
 
 
 async def test_oversized_concerns_are_bounded_without_discarding_reports():

@@ -58,6 +58,11 @@ def test_adjudication_provider_families_are_normalized():
     assert settings.reviewer_judge_provider == "gemini"
 
 
+def test_unknown_adjudication_provider_family_is_rejected():
+    with pytest.raises(ValidationError, match="unsupported LLM provider families: claude-fable-5"):
+        Settings(_env_file=None, reviewer_judge_provider="claude-fable-5")
+
+
 def test_same_adjudication_family_is_allowed_when_review_is_disabled():
     settings = Settings(
         _env_file=None,

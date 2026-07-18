@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _settings_override: "Settings | None" = None
 _settings_cache: "Settings | None" = None
+SUPPORTED_LLM_PROVIDERS = {"anthropic", "openai", "deepseek", "xai", "gemini", "ollama"}
 
 
 class Settings(BaseSettings):
@@ -111,6 +112,10 @@ class Settings(BaseSettings):
             self.reviewer_critic_provider,
             self.reviewer_judge_provider,
         }
+        unsupported = families - SUPPORTED_LLM_PROVIDERS
+        if unsupported:
+            names = ", ".join(sorted(unsupported))
+            raise ValueError(f"unsupported LLM provider families: {names}")
         if self.adversarial_review_enabled and len(families) != 3:
             raise ValueError("author, critic, and judge providers must use different families")
         return self

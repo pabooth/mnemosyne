@@ -19,6 +19,7 @@ from ..models import (
 from .markdown import build_markdown
 
 logger = logging.getLogger(__name__)
+REVIEW_OUTPUT_MAX_TOKENS = 16_000
 
 
 class ReviewAuditSink(Protocol):
@@ -188,6 +189,7 @@ class AdversarialReviewer:
         raw = await self._critic.complete(
             _critic_prompt(),
             _review_material(doc, acceptance_case),
+            max_tokens=REVIEW_OUTPUT_MAX_TOKENS,
         )
         try:
             payload = json.loads(_strip_fence(raw))
@@ -203,6 +205,7 @@ class AdversarialReviewer:
         raw = await self._judge.complete(
             _judge_prompt(doc.review_tier),
             _review_material(doc, acceptance_case, critic),
+            max_tokens=REVIEW_OUTPUT_MAX_TOKENS,
         )
         try:
             payload = json.loads(_strip_fence(raw))

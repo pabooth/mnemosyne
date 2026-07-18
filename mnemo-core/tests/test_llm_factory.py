@@ -29,8 +29,8 @@ def test_provider_factory_contract(settings, expected):
 
 
 def test_provider_factory_rejects_unknown_provider():
-    with pytest.raises(ValueError, match="Unknown LLM provider"):
-        get_provider(Settings(main_llm_provider="unknown"))
+    with pytest.raises(ValueError, match="unsupported LLM provider families: unknown"):
+        Settings(main_llm_provider="unknown")
 
 
 def test_main_model_is_independent_from_provider_credentials():
@@ -101,6 +101,33 @@ async def test_openai_compatible_provider_reports_output_truncation():
     )
 
     with pytest.raises(RuntimeError, match="truncated at the 123-token"):
+        await provider.complete("system", "user", 123)
+
+
+async def test_openai_compatible_provider_reports_empty_response():
+    provider = OpenAICompatProvider("test", "https://api.openai.com/v1", "gpt-5.6-sol")
+    provider._client.chat.completions.create = AsyncMock(
+        return_value=type(
+            "Response",
+            (),
+            {
+                "choices": [
+                    type(
+                        "Choice",
+                        (),
+                        {
+                            "finish_reason": "stop",
+                            "message": type(
+                                "Message", (), {"content": "", "refusal": None}
+                            )(),
+                        },
+                    )()
+                ]
+            },
+        )()
+    )
+
+    with pytest.raises(RuntimeError, match="empty response.*finish reason stop"):
         await provider.complete("system", "user", 123)
 
 
