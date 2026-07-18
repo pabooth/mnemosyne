@@ -298,12 +298,29 @@ def _strip_fence(value: str) -> str:
     return text
 
 
-def _audit_comment(result: AdversarialReviewResult) -> str:
-    acceptance = (
-        json.dumps(result.acceptance_case.model_dump(), indent=2)
-        if result.acceptance_case is not None
-        else "Unavailable."
+def _markdown_list(items: list[str]) -> str:
+    return "\n".join(f"- {item}" for item in items) or "- None"
+
+
+def _format_acceptance_case(case: AcceptanceCase | None) -> str:
+    if case is None:
+        return "### Author acceptance case\n\nUnavailable."
+    return "\n\n".join(
+        [
+            "### Author acceptance case",
+            f"#### Claims\n\n{_markdown_list(case.claims)}",
+            f"#### Evidence\n\n{_markdown_list(case.evidence)}",
+            f"#### Diataxis fit\n\n{case.diataxis_fit}",
+            "#### Anticipated objections\n\n"
+            f"{_markdown_list(case.anticipated_objections)}",
+            f"#### Limitations\n\n{_markdown_list(case.limitations)}",
+            f"#### Pending pipeline work\n\n{_markdown_list(case.pipeline_pending)}",
+        ]
     )
+
+
+def _audit_comment(result: AdversarialReviewResult) -> str:
+    acceptance = _format_acceptance_case(result.acceptance_case)
     if result.critic is None:
         critic = "### Critic challenge\n\nUnavailable or invalid response."
     else:
@@ -336,7 +353,7 @@ def _audit_comment(result: AdversarialReviewResult) -> str:
             "## Mnemosyne adversarial adjudication",
             f"**Tier:** {result.tier}  \n**Outcome:** {result.outcome}  "
             f"\n**Human review required:** {'yes' if result.requires_human_review else 'no'}",
-            f"### Author acceptance case\n\n{acceptance}",
+            acceptance,
             critic,
             judge,
             f"**Decision:** {result.reason}",

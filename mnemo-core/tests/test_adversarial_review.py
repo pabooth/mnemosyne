@@ -14,6 +14,7 @@ from mnemo_core.pipeline.review import (
     REVIEW_OUTPUT_MAX_TOKENS,
     AdversarialReviewer,
     GitHubReviewAuditSink,
+    _audit_comment,
     _critic_prompt,
     _judge_prompt,
 )
@@ -276,6 +277,16 @@ def accepted_result(*, tier="tier-1", human=False) -> AdversarialReviewResult:
         requires_human_review=human,
         reason="Accepted.",
     )
+
+
+def test_audit_comment_formats_acceptance_case_as_markdown_not_json():
+    comment = _audit_comment(accepted_result())
+
+    assert "#### Claims\n\n- The proposal is accurate." in comment
+    assert "#### Evidence\n\n- The document supplies supporting detail." in comment
+    assert "#### Diataxis fit\n\nIt fits its selected Diataxis type." in comment
+    assert "#### Anticipated objections\n\n- None" in comment
+    assert '"claims":' not in comment
 
 
 async def test_github_sink_comments_then_merges_accepted_tier_1():
