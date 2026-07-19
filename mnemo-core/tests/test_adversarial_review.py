@@ -103,6 +103,16 @@ def test_tier_2_judge_only_recommends_accept_or_reject():
     assert '"accept" or "reject" as a recommendation' in prompt
 
 
+def test_judge_adjudicates_closed_record_without_inventing_concerns():
+    prompt = _judge_prompt("tier-1")
+
+    assert "critic's challenge closes the record" in prompt
+    assert "do not perform another open-ended review" in prompt
+    assert "Do not search for, invent" in prompt
+    assert "Reject only when at least one of the critic's blocking concerns is upheld" in prompt
+    assert "do not include\n  new objections" in prompt
+
+
 async def test_tier_1_judge_acceptance_can_merge():
     sink = FakeSink(merged=True)
     result = await reviewer(critic_report(), judge_report("accept"), sink).review(
