@@ -175,7 +175,7 @@ class AdversarialReviewer:
                 judge=judge,
                 outcome=outcome,
                 requires_human_review=judge.verdict != "accept",
-                reason=f"The judge {judge.verdict}ed this Tier 1 contribution.",
+                reason=f"The judge {outcome} this Tier 1 contribution.",
             )
 
         try:

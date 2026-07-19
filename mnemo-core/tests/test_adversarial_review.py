@@ -135,6 +135,7 @@ async def test_tier_1_non_accept_decisions_require_human_review(verdict, outcome
     assert result.outcome == outcome
     assert result.requires_human_review is True
     assert result.merged is False
+    assert result.reason == f"The judge {outcome} this Tier 1 contribution."
 
 
 async def test_missing_acceptance_case_fails_closed_without_model_calls():
@@ -210,15 +211,22 @@ async def test_oversized_concerns_are_bounded_without_discarding_reports():
     assert result.judge.concerns == ["y" * 500]
 
 
-@pytest.mark.parametrize("verdict", ["accept", "reject"])
-async def test_tier_2_judge_verdict_is_a_human_recommendation(verdict):
+@pytest.mark.parametrize(
+    ("verdict", "outcome", "reason"),
+    [
+        ("accept", "accepted", "The judge recommends accept."),
+        ("reject", "rejected", "The judge recommends reject."),
+        ("escalate", "escalated", "The judge could not make a Tier 2 recommendation."),
+    ],
+)
+async def test_tier_2_judge_verdict_requires_human_review(verdict, outcome, reason):
     result = await reviewer(
         critic_report(tier="tier-2"), judge_report(verdict, tier="tier-2")
     ).review(processed_doc(review_tier="tier-2"), published())
-    assert result.outcome == ("accepted" if verdict == "accept" else "rejected")
+    assert result.outcome == outcome
     assert result.requires_human_review is True
     assert result.merged is False
-    assert f"recommends {verdict}" in result.reason
+    assert reason in result.reason
 
 
 async def test_either_review_stage_can_upgrade_tier_1_to_tier_2():

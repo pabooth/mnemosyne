@@ -48,6 +48,30 @@ async def test_submit_document_tool_queues_durable_ingest(configured_settings, t
     assert jobs[0]["result"]["publish"]["pr_url"] == "https://github.com/acme/kb/pull/1"
 
 
+async def test_submit_document_tool_records_processing_failure(configured_settings, tmp_path):
+    class FailingLLM(FakeLLM):
+        async def complete(self, system: str, user: str, max_tokens: int = 4000) -> str:
+            raise RuntimeError("processing failed")
+
+    publisher = FakePublisher()
+    runner = build_runner(configured_settings, publisher=publisher, llm=FailingLLM(""))
+    manager = JobManager(JobStore(str(tmp_path / "state.db")), max_attempts=1)
+
+    result = await handle_tool(
+        "submit_document",
+        {"content": "hello"},
+        runner,
+        manager,
+    )
+
+    assert "Document accepted for durable ingestion" in result[0].text
+    await asyncio.gather(*manager._tasks.values())
+    assert publisher.last_doc is None
+    jobs = manager.store.list_jobs(actor="mcp")
+    assert jobs[0]["status"] == "failed"
+    assert jobs[0]["error"] == "processing failed"
+
+
 def test_mcp_sse_route_reaches_auth(configured_settings):
     app = create_app(configured_settings)
     with TestClient(app) as client:

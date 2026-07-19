@@ -131,6 +131,16 @@ async def test_openai_compatible_provider_reports_empty_response():
         await provider.complete("system", "user", 123)
 
 
+async def test_openai_compatible_provider_reports_missing_choices():
+    provider = OpenAICompatProvider("test", "https://api.openai.com/v1", "gpt-5.6-sol")
+    provider._client.chat.completions.create = AsyncMock(
+        return_value=type("Response", (), {"choices": []})()
+    )
+
+    with pytest.raises(RuntimeError, match="provider returned no choices"):
+        await provider.complete("system", "user", 123)
+
+
 def test_evaluation_set_covers_all_diataxis_types():
     assert {case["expected"] for case in CASES} == {
         "tutorial",

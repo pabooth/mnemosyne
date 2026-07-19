@@ -24,6 +24,8 @@ class OpenAICompatProvider(LLMProvider):
             ],
             **token_limit,
         )
+        if not resp.choices:
+            raise RuntimeError("OpenAI-compatible provider returned no choices")
         choice = resp.choices[0]
         finish_reason = getattr(choice, "finish_reason", None)
         if finish_reason == "length":
