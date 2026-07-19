@@ -29,8 +29,8 @@ def test_provider_factory_contract(settings, expected):
 
 
 def test_provider_factory_rejects_unknown_provider():
-    with pytest.raises(ValueError, match="Unknown LLM provider"):
-        get_provider(Settings(main_llm_provider="unknown"))
+    with pytest.raises(ValueError, match="unsupported LLM provider families: unknown"):
+        Settings(main_llm_provider="unknown")
 
 
 def test_main_model_is_independent_from_provider_credentials():
@@ -44,17 +44,17 @@ def test_main_model_is_independent_from_provider_credentials():
     assert provider._model == "custom-main-model"
 
 
-def test_reviewer_models_are_configured_independently():
+def test_critic_and_judge_models_are_configured_independently():
     reviewer = build_adversarial_reviewer(
         Settings(
-            reviewer_advocate_provider="anthropic",
-            reviewer_advocate_model="custom-advocate-model",
             reviewer_critic_provider="openai",
             reviewer_critic_model="custom-critic-model",
+            reviewer_judge_provider="gemini",
+            reviewer_judge_model="custom-judge-model",
         )
     )
-    assert reviewer._advocate._model == "custom-advocate-model"
     assert reviewer._critic._model == "custom-critic-model"
+    assert reviewer._judge._model == "custom-judge-model"
 
 
 async def test_gpt_5_models_use_max_completion_tokens():
@@ -101,6 +101,43 @@ async def test_openai_compatible_provider_reports_output_truncation():
     )
 
     with pytest.raises(RuntimeError, match="truncated at the 123-token"):
+        await provider.complete("system", "user", 123)
+
+
+async def test_openai_compatible_provider_reports_empty_response():
+    provider = OpenAICompatProvider("test", "https://api.openai.com/v1", "gpt-5.6-sol")
+    provider._client.chat.completions.create = AsyncMock(
+        return_value=type(
+            "Response",
+            (),
+            {
+                "choices": [
+                    type(
+                        "Choice",
+                        (),
+                        {
+                            "finish_reason": "stop",
+                            "message": type(
+                                "Message", (), {"content": "", "refusal": None}
+                            )(),
+                        },
+                    )()
+                ]
+            },
+        )()
+    )
+
+    with pytest.raises(RuntimeError, match="empty response.*finish reason stop"):
+        await provider.complete("system", "user", 123)
+
+
+async def test_openai_compatible_provider_reports_missing_choices():
+    provider = OpenAICompatProvider("test", "https://api.openai.com/v1", "gpt-5.6-sol")
+    provider._client.chat.completions.create = AsyncMock(
+        return_value=type("Response", (), {"choices": []})()
+    )
+
+    with pytest.raises(RuntimeError, match="provider returned no choices"):
         await provider.complete("system", "user", 123)
 
 

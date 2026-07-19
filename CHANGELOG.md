@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Adversarial adjudication (ADR-020): the processing model now supplies an
+  acceptance case, a cross-family critic challenges it, and a third-family
+  judge accepts, rejects, or escalates Tier 1 proposals and recommends accept
+  or reject for mandatory-human-review Tier 2 proposals.
+
+### Changed
+
+- MCP `submit_document` now queues a durable ingest job and returns its job ID
+  immediately, preventing short MCP client timeouts from cancelling processing
+  before the pull request is created.
+
+- Adversarial-review configuration is intentionally breaking:
+  `REVIEWER_ADVOCATE_PROVIDER` and `REVIEWER_ADVOCATE_MODEL` are removed;
+  deployments enabling review must add `REVIEWER_JUDGE_PROVIDER` and
+  `REVIEWER_JUDGE_MODEL`, and main, critic, and judge providers must all differ.
+
 - KB-owned document templates (ADR-018): templates live in the knowledge
   base's `templates/<type>/<sub-label>.md` files and are fetched once at
   startup; the template set defines the sub-label taxonomy, so adding a

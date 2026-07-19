@@ -24,8 +24,17 @@ class OpenAICompatProvider(LLMProvider):
             ],
             **token_limit,
         )
-        if getattr(resp.choices[0], "finish_reason", None) == "length":
+        if not resp.choices:
+            raise RuntimeError("OpenAI-compatible provider returned no choices")
+        choice = resp.choices[0]
+        finish_reason = getattr(choice, "finish_reason", None)
+        if finish_reason == "length":
             raise RuntimeError(
                 f"OpenAI-compatible response was truncated at the {max_tokens}-token output limit"
             )
-        return resp.choices[0].message.content or ""
+        content = choice.message.content or ""
+        if not content.strip():
+            refusal = getattr(choice.message, "refusal", None)
+            detail = "refused" if refusal else f"finish reason {finish_reason or 'unknown'}"
+            raise RuntimeError(f"OpenAI-compatible provider returned an empty response ({detail})")
+        return content

@@ -69,7 +69,13 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
     def runner_factory() -> PipelineRunner:
         return build_runner(get_settings(), review_store=app.state.job_store)
 
-    app.mount("/mcp", create_mcp_asgi(runner_factory=runner_factory))
+    app.mount(
+        "/mcp",
+        create_mcp_asgi(
+            runner_factory=runner_factory,
+            job_manager=app.state.job_manager,
+        ),
+    )
 
     setup_telemetry(app)
 

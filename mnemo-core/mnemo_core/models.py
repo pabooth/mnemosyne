@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 DiataxisType = Literal["tutorial", "how-to", "reference", "explanation"]
 ReviewTier = Literal["tier-1", "tier-2"]
 ReviewVerdict = Literal["accept", "reject"]
+JudgeVerdict = Literal["accept", "reject", "escalate"]
 DocumentStatus = Literal[
     "draft", "review", "proposed", "accepted", "modified", "superseded"
 ]
@@ -52,6 +53,24 @@ class DuplicateCandidate(BaseModel):
     score: float
 
 
+class AcceptanceCase(BaseModel):
+    """Structured author defence supplied to adversarial adjudication."""
+
+    claims: list[str] = Field(default_factory=list, max_length=10)
+    evidence: list[str] = Field(default_factory=list, max_length=10)
+    diataxis_fit: str = Field(min_length=1, max_length=1_000)
+    anticipated_objections: list[str] = Field(default_factory=list, max_length=10)
+    limitations: list[str] = Field(default_factory=list, max_length=10)
+    pipeline_pending: list[str] = Field(default_factory=list, max_length=10)
+
+    @field_validator(
+        "claims", "evidence", "anticipated_objections", "limitations", "pipeline_pending"
+    )
+    @classmethod
+    def validate_entries(cls, values: list[str]) -> list[str]:
+        return _validate_bounded_strings(values, "acceptance case entries", max_chars=500)
+
+
 class ProcessedDocument(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -69,6 +88,9 @@ class ProcessedDocument(BaseModel):
     last_reviewed: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
     flags: list[str] = Field(max_length=50)
     body: str = Field(min_length=1, max_length=MAX_BODY_CHARS)
+    # ADR-020 review metadata. It travels with previews and durable jobs but
+    # build_markdown deliberately excludes it from published KB content.
+    acceptance_case: AcceptanceCase | None = None
     duplicate_candidates: list[DuplicateCandidate] = Field(default_factory=list)
 
     @field_validator("tags", "flags")
@@ -84,10 +106,24 @@ class PublishResult(BaseModel):
     review: "AdversarialReviewResult | None" = None
 
 
-class ReviewerReport(BaseModel):
-    role: Literal["advocate", "critic"]
+class CriticReport(BaseModel):
     provider_family: str
-    verdict: ReviewVerdict
+    recommended_tier: ReviewTier
+    blocking_concerns: list[str] = Field(default_factory=list, max_length=50)
+    non_blocking_concerns: list[str] = Field(default_factory=list, max_length=50)
+    rationale: str = Field(min_length=1, max_length=4_000)
+
+    @field_validator("blocking_concerns", "non_blocking_concerns")
+    @classmethod
+    def validate_concerns(cls, values: list[str]) -> list[str]:
+        return _validate_bounded_strings(
+            values, "concerns", max_chars=MAX_REVIEW_CONCERN_CHARS
+        )
+
+
+class JudgeReport(BaseModel):
+    provider_family: str
+    verdict: JudgeVerdict
     recommended_tier: ReviewTier
     concerns: list[str] = Field(default_factory=list, max_length=50)
     rationale: str = Field(min_length=1, max_length=4_000)
@@ -102,8 +138,9 @@ class ReviewerReport(BaseModel):
 
 class AdversarialReviewResult(BaseModel):
     tier: ReviewTier
-    advocate: ReviewerReport | None = None
-    critic: ReviewerReport | None = None
+    acceptance_case: AcceptanceCase | None = None
+    critic: CriticReport | None = None
+    judge: JudgeReport | None = None
     outcome: Literal["accepted", "rejected", "escalated"]
     requires_human_review: bool
     merged: bool = False

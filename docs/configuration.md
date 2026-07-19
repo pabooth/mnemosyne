@@ -43,29 +43,37 @@ The GitHub webhook route is also under `/api/v1`, but it uses the
 | Google Gemini | `GEMINI_API_KEY`, `GEMINI_BASE_URL` |
 | Ollama | `OLLAMA_BASE_URL` |
 
-Model names belong to workload slots rather than provider credentials. Configure
-the main pipeline with `MAIN_LLM_MODEL`, and configure each adversarial reviewer
-with its corresponding reviewer model variable.
+Model names belong to workload slots rather than provider credentials. The main
+pipeline model authors the document and acceptance case; critic and judge models
+have their own workload variables.
 
-## Adversarial review (ADR-011)
+## Adversarial adjudication (ADR-020)
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `ADVERSARIAL_REVIEW_ENABLED` | `false` | Run the dual-model review gate after publishing; when `false`, leave every PR for manual handling and never auto-merge |
-| `REVIEWER_ADVOCATE_PROVIDER` | `anthropic` | Provider family instructed to build the acceptance case |
-| `REVIEWER_ADVOCATE_MODEL` | `claude-sonnet-4-6` | Model used by the advocate reviewer |
-| `REVIEWER_CRITIC_PROVIDER` | `openai` | Provider family instructed to hunt for rejection reasons |
+| `ADVERSARIAL_REVIEW_ENABLED` | `false` | Run challenge and adjudication after publishing; when `false`, leave every PR for manual handling and never auto-merge |
+| `REVIEWER_CRITIC_PROVIDER` | `openai` | Provider family that challenges the main model's acceptance case |
 | `REVIEWER_CRITIC_MODEL` | `gpt-4o` | Model used by the critic reviewer |
+| `REVIEWER_JUDGE_PROVIDER` | `gemini` | Provider family that neutrally adjudicates the document and both arguments |
+| `REVIEWER_JUDGE_MODEL` | `gemini-2.5-pro` | Model used by the judge |
 
-The two provider values must name different supported provider families. Reviewer
-slots select their models independently and reuse the API credentials and endpoint
-configured for the selected provider.
-Every `/ingest` and `/publish` operation records the structured outcome in a PR
-comment. Reviewer disagreement, invalid output, or unavailability escalates to
-human review. Tier 2 always requires human approval. Only unanimous Tier 1
-acceptance attempts an automatic squash merge.
+`MAIN_LLM_PROVIDER`, `REVIEWER_CRITIC_PROVIDER`, and `REVIEWER_JUDGE_PROVIDER`
+must name three different supported provider families. This is a breaking change:
+remove the former `REVIEWER_ADVOCATE_PROVIDER` and `REVIEWER_ADVOCATE_MODEL`
+variables and add the judge variables above. The main model now supplies the
+author-advocate role as part of ordinary processing.
 
-Setting `ADVERSARIAL_REVIEW_ENABLED=false` skips both reviewer calls, the review
+Every `/ingest` and `/publish` operation records the acceptance case, critic
+challenge, and judge decision in a PR comment. Invalid output or unavailability
+at any stage escalates to human review. For Tier 1 the judge may accept, reject,
+or escalate; only accept attempts an automatic squash merge. For Tier 2 the
+judge recommends accept or reject and human approval is always mandatory.
+
+The acceptance case is structured into bounded claims, evidence, Diataxis fit, anticipated
+objections, limitations, and pending pipeline work. It is review metadata and is never published
+as document content.
+
+Setting `ADVERSARIAL_REVIEW_ENABLED=false` skips critic and judge calls, the review
 comment, and automatic merge. Publishing still creates a branch and pull request,
 and the API returns `null` for the review result. This is an operational fallback;
 the PR must then be handled manually.
