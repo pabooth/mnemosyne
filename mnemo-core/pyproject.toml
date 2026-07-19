@@ -1,6 +1,6 @@
 [project]
 name = "mnemo-core"
-version = "2.1.0"
+version = "2.2.0"
 description = "Mnemosyne ingestion engine — REST API, MCP server, and document processing pipeline"
 readme = "README.md"
 license = "MIT"
