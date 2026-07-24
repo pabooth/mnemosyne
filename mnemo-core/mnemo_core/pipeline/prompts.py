@@ -1,4 +1,4 @@
-"""Classifier prompt assembly (ADR-003, ADR-018).
+"""Classifier prompt assembly (ADR-003, ADR-022).
 
 The four Diataxis types and their classification rules are fixed here.
 The sub-label taxonomy is not: it is assembled from the knowledge base's

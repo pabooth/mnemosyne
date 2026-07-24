@@ -8,7 +8,7 @@ from .base import VectorIndex, VectorMatch, VectorRecord
 
 
 class SqliteVecIndex(VectorIndex):
-    """Reference vector-index implementation (ADR-014/ADR-015).
+    """Reference vector-index implementation (ADR-014/ADR-017).
 
     Embedded and file-based: loads the ``sqlite-vec`` extension into a
     plain SQLite file, by default its own file separate from durable job

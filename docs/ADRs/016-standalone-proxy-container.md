@@ -1,6 +1,6 @@
 # ADR-016: Extract edge routing into mnemo-proxy
 
-> **Status:** `Accepted`
+> **Status:** `Superseded`
 > **Date:** 2026-07-11
 > **Review date:** 2027-07-11
 
@@ -12,13 +12,11 @@
 |---|---|
 | **ID** | ADR-016 |
 | **Title** | Extract edge routing into mnemo-proxy |
-| **Status** | Accepted |
+| **Status** | Superseded |
 | **Date** | 2026-07-11 |
 | **Review date** | 2027-07-11 |
 | **Supersedes** | — |
-| **Superseded by** | — |
-| **Amends** | ADR-012 (proxy ownership only) |
-| **Amended by** | — |
+| **Superseded by** | [ADR-023: Decompose Mnemosyne into deployed services, clients, and external systems](023-container-decomposition.md) |
 
 ---
 

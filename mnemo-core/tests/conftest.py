@@ -54,7 +54,7 @@ VALID_PROCESSED_JSON = {
 @pytest.fixture(autouse=True)
 def reset_settings():
     configure_settings(None)
-    # ADR-018: templates are fetched from GitHub on first use; tests must
+    # ADR-022: templates are fetched from GitHub on first use; tests must
     # never reach the network, so pin a sample set for every test.
     configure_template_set(SAMPLE_TEMPLATES)
     yield

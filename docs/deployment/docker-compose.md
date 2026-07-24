@@ -97,7 +97,7 @@ MNEMO_GID=991
 ```
 
 The configured identity must be able to write `STATE_DB_PATH`. Data is
-bind-mounted per component (ADR-015) under `$MNEMO_HOME/data`, so create
+bind-mounted per component (ADR-017) under `$MNEMO_HOME/data`, so create
 and assign each component's subdirectory before starting:
 
 ```bash
@@ -166,12 +166,12 @@ approved OpenAI-compatible provider configured with `OPENAI_API_KEY`,
 
 Set `CURATOR_ISSUE_TRACKER` to `github`, `jira`, or `sqlite`. The SQLite
 fallback stores findings under `$MNEMO_HOME/data/mnemo-curator/issues.db`
-(ADR-015/ADR-017).
+(ADR-017).
 
 ## Migrating from earlier data layouts
 
 Skip this section for new deployments. Earlier layouts predate the
-instance directory (ADR-017) and ADR-015's per-component directories, and
+instance directory (ADR-017) and ADR-017's per-component directories, and
 none of them migrate automatically — starting the new layout without
 migrating gives you empty databases, which for the vector index means
 re-spending embedding-provider budget to rebuild it.

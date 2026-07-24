@@ -12,7 +12,7 @@ class ContentSource(Protocol):
 
 
 class Indexer:
-    """Embed-and-write logic folded into mnemo-core per ADR-012.
+    """Embed-and-write logic folded into mnemo-core per ADR-023.
 
     Stateless per call: every run re-derives chunk ids and content hashes
     from the source content it's given, diffs them against what the vector

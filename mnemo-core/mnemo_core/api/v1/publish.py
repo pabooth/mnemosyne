@@ -17,7 +17,7 @@ async def publish(
     req: ProcessedDocument,
     runner: PipelineRunner = Depends(get_runner),
 ) -> PublishResult:
-    """Publish an edited preview, then apply the ADR-011 adversarial review gate."""
+    """Publish an edited preview, then apply the ADR-021 adversarial review gate."""
     try:
         return await runner.publish(req)
     except PipelineError as e:

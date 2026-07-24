@@ -1,4 +1,4 @@
-"""KB-owned document templates and sub-label taxonomy (ADR-018).
+"""KB-owned document templates and sub-label taxonomy (ADR-022).
 
 Templates live in the knowledge-base repository under
 ``<DOCS_ROOT>/templates/<type-folder>/<sub-label>.md``. The fetched set
@@ -48,7 +48,7 @@ class Template:
     sub_label: str
     description: str
     body: str
-    # ADR-019: the template's declaration is the canonical review tier for
+    # ADR-022: the template's declaration is the canonical review tier for
     # every document of this (type, sub-label); absence fails closed.
     tier: str = "tier-2"
 
@@ -130,7 +130,7 @@ def parse_template(path: str, content: str) -> Template:
             "so keep it a concise definition"
         )
 
-    # ADR-019: a missing tier fails closed to tier-2, but an explicit value
+    # ADR-022: a missing tier fails closed to tier-2, but an explicit value
     # must be valid — a typo silently becoming tier-2 would misstate the
     # curator's reviewed intent.
     tier_match = _TIER.search(frontmatter.group(1))
@@ -231,7 +231,7 @@ _template_set_cache: TemplateSet | None = None
 
 
 def get_template_set() -> TemplateSet:
-    """Return the template set, fetching it on first use (ADR-018).
+    """Return the template set, fetching it on first use (ADR-022).
 
     Without a configured GitHub repository and token there is nothing to
     fetch: preview-only deployments get an empty taxonomy and a warning.

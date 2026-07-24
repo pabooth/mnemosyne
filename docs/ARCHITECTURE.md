@@ -203,7 +203,7 @@ Optional. `mnemo-proxy` is a standalone container in front of `mnemo-ui` and
 core. Its Nginx configuration and image definition live in `/mnemo-proxy/`.
 It contains no application or governance logic. Headless deployments can omit
 it, and production operators can place their TLS ingress in front of it or
-replace it with an equivalent edge router. See ADR-016.
+replace it with an equivalent edge router. See ADR-023.
 
 `mnemo-core` is intended to be private rather than directly exposed to the internet. Even so, REST and MCP intake endpoints should require a simple authentication layer so accidental exposure, misrouting, or lateral access does not grant unauthenticated access to LLM processing or PR creation. Bearer-token REST routes use `Authorization: Bearer <token>`; the GitHub webhook route uses `X-Hub-Signature-256` instead.
 
@@ -278,13 +278,16 @@ Key decisions governing this project are documented as ADRs in `/docs/ADRs/`.
 | 008 | MCP transport and client compatibility           | Accepted |
 | 009 | Ship mnemo-ui as a standalone static container   | Accepted |
 | 010 | Maintain mnemo-ui as source modules, not a monolithic HTML bundle | Accepted |
-| 011 | Tiered review model for KB contributions         | Accepted |
-| 012 | Container-level decomposition of Mnemosyne       | Accepted |
+| 011 | Tiered review model for KB contributions         | Superseded |
+| 012 | Container-level decomposition of Mnemosyne       | Superseded |
 | 013 | API contract & versioning strategy               | Accepted |
 | 014 | Pluggable vector-index layer, sqlite-vec as reference | Accepted |
-| 015 | Persistence layout: bind-mounted, component-named data dirs, WAL-mode SQLite | Accepted |
-| 016 | Standalone proxy container                       | Accepted |
+| 015 | Persistence layout: bind-mounted, component-named data dirs, WAL-mode SQLite | Superseded |
+| 016 | Standalone proxy container                       | Superseded |
 | 017 | Instance directory                               | Accepted |
-| 018 | KB-owned templates define the sub-label taxonomy | Proposed |
-| 019 | Templates declare the review tier of their document type | Proposed |
-| 020 | Adjudicate an authored case against an adversarial challenge | Accepted |
+| 018 | KB-owned templates define the sub-label taxonomy | Superseded |
+| 019 | Templates declare the review tier of their document type | Superseded |
+| 020 | Adjudicate an authored case against an adversarial challenge | Superseded |
+| 021 | Tiered review with adversarial adjudication and author rebuttal | Accepted |
+| 022 | KB-owned templates define the taxonomy and declare review tiers | Accepted |
+| 023 | Decompose Mnemosyne into deployed services, clients, and external systems | Accepted |

@@ -1,6 +1,6 @@
 # ADR-011: Tiered review model for KB contributions
 
-> **Status:** `Accepted`
+> **Status:** `Superseded`
 > **Date:** 2026-06-30
 > **Review date:** 2027-06-30
 
@@ -12,13 +12,11 @@
 |---|---|
 | **ID** | ADR-011 |
 | **Title** | Tiered review model for KB contributions |
-| **Status** | Accepted |
-| **Date** | 2026-07-06 |
+| **Status** | Superseded |
+| **Date** | 2026-06-30 |
 | **Review date** | 2027-06-30 |
 | **Supersedes** | [ADR-005: AI must not contribute to the knowledge base without human review](005-human-review-governance.md) |
-| **Superseded by** | — |
-| **Amends** | — |
-| **Amended by** | [ADR-020: Adjudicate an authored case against an adversarial challenge](020-adversarial-adjudication.md) |
+| **Superseded by** | [ADR-021: Tiered review with adversarial adjudication and author rebuttal](021-tiered-adversarial-review.md) |
 
 ---
 

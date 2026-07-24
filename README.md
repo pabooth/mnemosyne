@@ -141,20 +141,25 @@ the model used by the processing pipeline. Operational settings are documented i
 
 Adversarial review is off by default. Set `ADVERSARIAL_REVIEW_ENABLED=true` to
 enable it, then configure `REVIEWER_CRITIC_PROVIDER`/`MODEL` and
-`REVIEWER_JUDGE_PROVIDER`/`MODEL`. The main LLM authors the document and its
-acceptance case; the critic challenges that case and the judge adjudicates it.
-All three providers must name different families. Each slot reuses the
-corresponding provider credentials. See
-[configuration.md](docs/configuration.md#adversarial-adjudication-adr-020) for the
+`REVIEWER_JUDGE_PROVIDER`/`MODEL`. Review is a four-stage record: the main LLM
+authors the document and its acceptance case, the critic challenges that case
+with an ordered list of blocking concerns, the main LLM answers those concerns
+by index, and the judge disposes of each concern in turn. All three providers
+must name different families. Each slot reuses the corresponding provider
+credentials. See
+[configuration.md](docs/configuration.md#adversarial-adjudication-adr-021) for the
 full setup and fallback behaviour.
 
 ## Governance and safety
 
 - Generated content can only be published to a feature branch and pull request.
 - When enabled, every published contribution receives cross-family adversarial
-  adjudication. Only a Tier 1 judge decision of `accept` can trigger an
-  automatic squash merge; when disabled, or for Tier 2, rejection, uncertainty,
-  or unavailable models, contributions remain human-gated.
+  adjudication. The verdict is derived in code from the judge's per-concern
+  dispositions rather than stated by the model: an upheld concern rejects, an
+  unresolved one escalates, and only a Tier 1 contribution with neither can
+  trigger an automatic squash merge. When review is disabled, for Tier 2, or on
+  rejection, uncertainty, invalid output, or unavailable models, contributions
+  remain human-gated.
 - Preview output can be edited and then submitted verbatim through
   `/api/v1/publish`.
 - Inputs and generated outputs are validated and size-limited.

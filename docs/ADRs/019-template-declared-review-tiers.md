@@ -1,6 +1,6 @@
 # ADR-019: Templates declare the review tier of their document type
 
-> **Status:** `Proposed`
+> **Status:** `Superseded`
 > **Date:** 2026-07-14
 > **Review date:** 2027-07-14
 
@@ -12,13 +12,11 @@
 |---|---|
 | **ID** | ADR-019 |
 | **Title** | Templates declare the review tier of their document type |
-| **Status** | Proposed |
+| **Status** | Superseded |
 | **Date** | 2026-07-14 |
 | **Review date** | 2027-07-14 |
 | **Supersedes** | — |
-| **Superseded by** | — |
-| **Amends** | [ADR-011: Tiered review model](011-tiered-review-model.md), [ADR-018: KB-owned templates](018-kb-owned-templates.md) *(on acceptance)* |
-| **Amended by** | — |
+| **Superseded by** | [ADR-022: KB-owned templates define the taxonomy and declare review tiers](022-kb-owned-templates-and-tiers.md) |
 
 ---
 
@@ -38,7 +36,7 @@ ADR-011 established the tiered review model: Tier 1 contributions may merge auto
 
 Today that prose is the only definition. It is duplicated into the classifier prompt, and the classifying LLM assigns `review_tier` as a judgment call on every document. The adversarial reviewers each make the same judgment again (`recommended_tier`), and any reviewer saying Tier 2 escalates the effective tier. There is no deterministic ground truth: a document that the classifier and both reviewers all mis-judge as Tier 1 has no independent check, and the tier boundary itself lives in prompt text owned by Mnemosyne's developers rather than by the knowledge base it governs.
 
-ADR-018 (currently Proposed) establishes that the KB's template set *is* the sub-label taxonomy: each `templates/<type>/<sub-label>.md` file is the authoritative statement of what that document type means, protected by branch protection and a CODEOWNERS rule that the pipeline's service account cannot bypass. Tier membership is a property of a document type — a runbook is Tier 1 *because of what runbooks are*, not because of anything about one particular runbook. The taxonomy is therefore the natural home for the tier boundary, and leaving it in prompt prose while the rest of the taxonomy moves to the KB would split the definition of a document type across two owners.
+ADR-018 (Proposed when this ADR was written, since superseded by ADR-022) establishes that the KB's template set *is* the sub-label taxonomy: each `templates/<type>/<sub-label>.md` file is the authoritative statement of what that document type means, protected by branch protection and a CODEOWNERS rule that the pipeline's service account cannot bypass. Tier membership is a property of a document type — a runbook is Tier 1 *because of what runbooks are*, not because of anything about one particular runbook. The taxonomy is therefore the natural home for the tier boundary, and leaving it in prompt prose while the rest of the taxonomy moves to the KB would split the definition of a document type across two owners.
 
 ---
 

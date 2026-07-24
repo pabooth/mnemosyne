@@ -2,7 +2,7 @@
 
 Mnemosyne ships no built-in templates: your knowledge base's `templates/`
 directory is the whole truth about which document subtypes exist and what
-they contain (ADR-018). These examples are starting points — copy the ones
+they contain (ADR-022). These examples are starting points — copy the ones
 you want into your KB and edit them to match your conventions:
 
 ```bash
@@ -17,8 +17,9 @@ carries two fields:
 - `description` — read by the classifier verbatim; it is the definition of
   when a document counts as this type, so write it as carefully as the
   template body.
-- `tier` — the ADR-011 review tier for documents of this type: `tier-1`
-  (may auto-merge when both adversarial reviewers accept) or `tier-2`
+- `tier` — the ADR-021 review tier for documents of this type: `tier-1`
+  (may auto-merge only on a derived `accept` — no blocking concern upheld
+  and none left unresolved) or `tier-2`
   (human approval always required). A missing `tier` fails closed to
   `tier-2`. Declaring `tier-1` is a positive editorial decision to open
   the auto-merge path for that document type — the example set marks
@@ -34,7 +35,7 @@ Mnemosyne service account unable to merge) plus a CODEOWNERS rule:
 ```
 
 Because template changes require human approval and the service account
-cannot merge them, the template set satisfies ADR-011's requirement that
+cannot merge them, the template set satisfies ADR-021's requirement that
 the definition of tier membership is itself Tier 2 content.
 
 mnemo-core reads the template set once at startup; restart it after

@@ -44,41 +44,68 @@ The GitHub webhook route is also under `/api/v1`, but it uses the
 | Ollama | `OLLAMA_BASE_URL` |
 
 Model names belong to workload slots rather than provider credentials. The main
-pipeline model authors the document and acceptance case; critic and judge models
-have their own workload variables.
+pipeline model authors the document, its acceptance case, and any rebuttal;
+critic and judge models have their own workload variables.
 
-## Adversarial adjudication (ADR-020)
+## Adversarial adjudication (ADR-021)
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `ADVERSARIAL_REVIEW_ENABLED` | `false` | Run challenge and adjudication after publishing; when `false`, leave every PR for manual handling and never auto-merge |
 | `REVIEWER_CRITIC_PROVIDER` | `openai` | Provider family that challenges the main model's acceptance case |
 | `REVIEWER_CRITIC_MODEL` | `gpt-4o` | Model used by the critic reviewer |
-| `REVIEWER_JUDGE_PROVIDER` | `gemini` | Provider family that neutrally adjudicates the document and both arguments |
+| `REVIEWER_JUDGE_PROVIDER` | `gemini` | Provider family that neutrally adjudicates the record |
 | `REVIEWER_JUDGE_MODEL` | `gemini-2.5-pro` | Model used by the judge |
 
 `MAIN_LLM_PROVIDER`, `REVIEWER_CRITIC_PROVIDER`, and `REVIEWER_JUDGE_PROVIDER`
 must name three different supported provider families. This is a breaking change:
 remove the former `REVIEWER_ADVOCATE_PROVIDER` and `REVIEWER_ADVOCATE_MODEL`
 variables and add the judge variables above. The main model now supplies the
-author-advocate role as part of ordinary processing.
+author role as part of ordinary processing.
 
-Every `/ingest` and `/publish` operation records the acceptance case, critic
-challenge, and judge decision in a PR comment. Invalid output or unavailability
-at any stage escalates to human review. For Tier 1 the judge may accept, reject,
-or escalate; only accept attempts an automatic squash merge. For Tier 2 the
-judge recommends accept or reject and human approval is always mandatory.
+Review is a four-stage record:
 
-The acceptance case is structured into bounded claims, evidence, Diataxis fit, anticipated
-objections, limitations, and pending pipeline work. It is review metadata and is never published
-as document content.
+1. **The author's case.** The main model produces the acceptance case alongside
+   the document: bounded claims, evidence, Diataxis fit, anticipated objections,
+   limitations, and pending pipeline work. It is review metadata and is never
+   published as document content.
+2. **The challenge.** The critic receives the exact published document and the
+   acceptance case, and returns an ordered list of at most ten blocking concerns
+   plus advisory non-blocking ones. Positions in that list are stable and every
+   later stage refers to a concern by its index.
+3. **The rebuttal.** When the critic raises at least one blocking concern, the
+   main model answers them by index with a stance of `dispute` or `no-contest`.
+   A concern it does not answer is undefended, which is permitted. The rebuttal
+   is skipped entirely when there are no blocking concerns.
+4. **The adjudication.** The judge receives the whole record and returns one
+   disposition — `upheld`, `dismissed`, or `unresolved` — for every blocking
+   concern, and nothing else. It has no verdict field and no channel for an
+   objection the critic never raised.
 
-Setting `ADVERSARIAL_REVIEW_ENABLED=false` skips critic and judge calls, the review
+The verdict is derived from the dispositions in code, never taken from model
+output: any concern upheld rejects; otherwise any unresolved escalates;
+otherwise the contribution is accepted. For Tier 1 only a derived accept
+attempts an automatic squash merge. For Tier 2 the derived outcome is a
+recommendation and human approval is always mandatory.
+
+Each stage is bounded by `REQUEST_TIMEOUT_SECONDS` and is retried once when its
+output does not parse. Missing artefacts, invalid output, a required rebuttal
+that fails, dispositions that do not match the challenge, and stage
+unavailability all escalate to human review. Each artefact is passed to the
+models inside a per-call random fence, so submitted content cannot present
+itself as another party's contribution.
+
+Every `/ingest` and `/publish` operation records the acceptance case, challenge,
+rebuttal, per-concern dispositions, effective tier, derived outcome, each
+participant's provider family and model, and the review protocol version in a PR
+comment.
+
+Setting `ADVERSARIAL_REVIEW_ENABLED=false` skips every review call, the review
 comment, and automatic merge. Publishing still creates a branch and pull request,
 and the API returns `null` for the review result. This is an operational fallback;
 the PR must then be handled manually.
 
-## Document templates and taxonomy (ADR-018)
+## Document templates and taxonomy (ADR-022)
 
 Document templates live in the knowledge-base repository, not in
 Mnemosyne, in a `templates/` directory beside the Diataxis content
@@ -140,7 +167,7 @@ is embedded and file-based, so no separate service is required.
 | Variable | Default | Purpose |
 |---|---|---|
 | `VECTOR_STORE` | `sqlite-vec` | Only `sqlite-vec` is currently supported |
-| `VECTOR_DB_PATH` | `./data/mnemo-core/vectors.db` (bare-metal) / `/data/vectors.db` (Docker) | Its own file by default (ADR-015), separate from `STATE_DB_PATH`; not set in `mnemosyne.env.example` because Docker Compose hardcodes the container path directly, like `STATE_DB_PATH` |
+| `VECTOR_DB_PATH` | `./data/mnemo-core/vectors.db` (bare-metal) / `/data/vectors.db` (Docker) | Its own file by default (ADR-017), separate from `STATE_DB_PATH`; not set in `mnemosyne.env.example` because Docker Compose hardcodes the container path directly, like `STATE_DB_PATH` |
 | `VECTOR_EMBEDDING_DIM` | `1536` | Must match the active embedding model's output size |
 | `EMBEDDING_PROVIDER` | `openai` | `openai` or `ollama` |
 | `EMBEDDING_OPENAI_MODEL` | `text-embedding-3-small` | Uses `OPENAI_API_KEY`/`OPENAI_BASE_URL` |
@@ -225,7 +252,7 @@ strongly recommended for production. The selected identity must have write
 access to the directory containing `STATE_DB_PATH`; see the
 [Docker deployment guide](./deployment/docker-compose.md#runtime-user).
 
-## Persistence (ADR-015 / ADR-017)
+## Persistence (ADR-017)
 
 All instance state lives in one directory located by the `MNEMO_HOME`
 environment variable — conventionally `~/mnemosyne` on a development
@@ -256,7 +283,7 @@ its working directory and state lands in the right place. The explicit
 
 The two components' data directories are never shared, preserving the
 failure-domain separation between `mnemo-core` and `mnemo-curator`
-established in ADR-012.
+established in ADR-023.
 
 All SQLite connections (jobs, vector index, curator's SQLite issue tracker)
 run in WAL mode.

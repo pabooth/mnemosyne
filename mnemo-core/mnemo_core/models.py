@@ -4,8 +4,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 DiataxisType = Literal["tutorial", "how-to", "reference", "explanation"]
 ReviewTier = Literal["tier-1", "tier-2"]
-ReviewVerdict = Literal["accept", "reject"]
-JudgeVerdict = Literal["accept", "reject", "escalate"]
 DocumentStatus = Literal[
     "draft", "review", "proposed", "accepted", "modified", "superseded"
 ]
@@ -13,6 +11,15 @@ DocumentStatus = Literal[
 MAX_DOCUMENT_CHARS = 1_000_000
 MAX_BODY_CHARS = 1_000_000
 MAX_REVIEW_CONCERN_CHARS = 500
+# ADR-021 bounds the critic's blocking concerns to a small list so that the
+# author can answer each one and the judge can dispose of each one by position.
+MAX_REVIEW_CONCERNS = 10
+MAX_REBUTTAL_ARGUMENT_CHARS = 1_000
+# Stamped on every review result: the ADR-020 record shape is not comparable.
+REVIEW_PROTOCOL_VERSION = "adr-021"
+# Records written before the protocol was stamped are ADR-020 by definition;
+# a stored result must never be re-read as if it followed the current contract.
+LEGACY_REVIEW_PROTOCOL_VERSION = "adr-020"
 
 
 def _validate_bounded_strings(
@@ -76,7 +83,7 @@ class ProcessedDocument(BaseModel):
 
     title: str = Field(min_length=1, max_length=200)
     type: DiataxisType
-    # Assigned by template lookup after classification (ADR-019), never by
+    # Assigned by template lookup after classification (ADR-022), never by
     # the LLM. The tier-2 default fails closed for legacy records and for
     # documents with no matching template.
     review_tier: ReviewTier = "tier-2"
@@ -88,7 +95,7 @@ class ProcessedDocument(BaseModel):
     last_reviewed: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
     flags: list[str] = Field(max_length=50)
     body: str = Field(min_length=1, max_length=MAX_BODY_CHARS)
-    # ADR-020 review metadata. It travels with previews and durable jobs but
+    # ADR-021 review metadata. It travels with previews and durable jobs but
     # build_markdown deliberately excludes it from published KB content.
     acceptance_case: AcceptanceCase | None = None
     duplicate_candidates: list[DuplicateCandidate] = Field(default_factory=list)
@@ -108,9 +115,12 @@ class PublishResult(BaseModel):
 
 class CriticReport(BaseModel):
     provider_family: str
+    model: str = ""
     recommended_tier: ReviewTier
-    blocking_concerns: list[str] = Field(default_factory=list, max_length=50)
-    non_blocking_concerns: list[str] = Field(default_factory=list, max_length=50)
+    # Ordered: positions are stable and every later stage refers to a concern
+    # by its index in this list.
+    blocking_concerns: list[str] = Field(default_factory=list, max_length=MAX_REVIEW_CONCERNS)
+    non_blocking_concerns: list[str] = Field(default_factory=list, max_length=MAX_REVIEW_CONCERNS)
     rationale: str = Field(min_length=1, max_length=4_000)
 
     @field_validator("blocking_concerns", "non_blocking_concerns")
@@ -121,25 +131,52 @@ class CriticReport(BaseModel):
         )
 
 
-class JudgeReport(BaseModel):
-    provider_family: str
-    verdict: JudgeVerdict
-    recommended_tier: ReviewTier
-    concerns: list[str] = Field(default_factory=list, max_length=50)
-    rationale: str = Field(min_length=1, max_length=4_000)
+class RebuttalEntry(BaseModel):
+    """The author's answer to one critic blocking concern, by position."""
 
-    @field_validator("concerns")
-    @classmethod
-    def validate_concerns(cls, values: list[str]) -> list[str]:
-        return _validate_bounded_strings(
-            values, "concerns", max_chars=MAX_REVIEW_CONCERN_CHARS
-        )
+    concern_index: int
+    stance: Literal["dispute", "no-contest"]
+    argument: str = Field(default="", max_length=MAX_REBUTTAL_ARGUMENT_CHARS)
+
+
+class RebuttalReport(BaseModel):
+    provider_family: str
+    model: str = ""
+    entries: list[RebuttalEntry] = Field(default_factory=list, max_length=MAX_REVIEW_CONCERNS)
+
+
+class ConcernDisposition(BaseModel):
+    """The judge's finding on one critic blocking concern, by position."""
+
+    concern_index: int
+    disposition: Literal["upheld", "dismissed", "unresolved"]
+    reason: str = Field(min_length=1, max_length=MAX_REVIEW_CONCERN_CHARS)
+
+
+class JudgeReport(BaseModel):
+    """The adjudication. There is deliberately no verdict field and no free
+    text in which the judge can record an objection the critic never raised;
+    the verdict is derived from the dispositions in code."""
+
+    provider_family: str
+    model: str = ""
+    recommended_tier: ReviewTier
+    dispositions: list[ConcernDisposition] = Field(
+        default_factory=list, max_length=MAX_REVIEW_CONCERNS
+    )
+    rationale: str = Field(min_length=1, max_length=4_000)
 
 
 class AdversarialReviewResult(BaseModel):
+    # The reviewer stamps REVIEW_PROTOCOL_VERSION explicitly. The default is
+    # only reached when a stored result predates the field, and those records
+    # are ADR-020 — defaulting them to the current protocol would claim a
+    # derived-verdict guarantee the record never had.
+    protocol_version: str = LEGACY_REVIEW_PROTOCOL_VERSION
     tier: ReviewTier
     acceptance_case: AcceptanceCase | None = None
     critic: CriticReport | None = None
+    rebuttal: RebuttalReport | None = None
     judge: JudgeReport | None = None
     outcome: Literal["accepted", "rejected", "escalated"]
     requires_human_review: bool

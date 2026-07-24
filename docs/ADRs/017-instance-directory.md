@@ -15,10 +15,8 @@
 | **Status** | Accepted |
 | **Date** | 2026-07-13 |
 | **Review date** | 2027-07-13 |
-| **Supersedes** | — |
+| **Supersedes** | [ADR-015: Persistence layout](015-persistence-layout.md) |
 | **Superseded by** | — |
-| **Amends** | ADR-015 |
-| **Amended by** | — |
 
 ---
 
@@ -98,11 +96,13 @@ A single directory holds everything that makes an installation that installation
 
 ## Decision
 
-1. All persistent instance state lives in one directory located by the `MNEMO_HOME` environment variable: `$MNEMO_HOME/mnemosyne.env` (start-time configuration) and `$MNEMO_HOME/data/<component>/` (ADR-015's per-component data directories, re-parented). Conventional locations: `~/mnemosyne` for development, `/srv/mnemosyne` for Linux servers.
+1. All persistent instance state lives in one directory located by the `MNEMO_HOME` environment variable: `$MNEMO_HOME/mnemosyne.env` (start-time configuration) and `$MNEMO_HOME/data/<component>/`. Conventional locations: `~/mnemosyne` for development, `/srv/mnemosyne` for Linux servers.
 2. Docker Compose requires `MNEMO_HOME` and fails loudly without it (`${MNEMO_HOME:?…}` interpolation). The `./data` fallback and the `MNEMO_DATA_DIR` variable are removed; data on a different disk is handled by symlinking `$MNEMO_HOME/data`.
 3. The configuration file is a visible `mnemosyne.env`, passed to Compose explicitly (`COMPOSE_ENV_FILES="$MNEMO_HOME/mnemosyne.env"` exported once, or `--env-file` per invocation). Auto-discovery of a checkout-root `.env` is no longer part of the deployment contract.
-4. Databases are named by function within their component directory: `mnemo-core/state.db` (durable jobs and audit), `mnemo-core/vectors.db` (vector index), `mnemo-curator/issues.db` (curator findings).
-5. Application code never reads `MNEMO_HOME` — it is deployment configuration. Bare-metal runs use the applications' relative defaults (`./data/<component>/<function>.db`) resolved against the working directory, so running a process with `$MNEMO_HOME` as its working directory lands state in the right place; the explicit `*_DB_PATH` variables override as before.
+4. Data lives in bind-mounted host directories, not anonymous named Docker volumes, and each deployable gets its own subdirectory named after the component: `$MNEMO_HOME/data/mnemo-core`, `$MNEMO_HOME/data/mnemo-curator`. No directory or volume is shared between `mnemo-core` and `mnemo-curator`.
+5. Databases are named by function within their component directory: `mnemo-core/state.db` (durable jobs and audit), `mnemo-core/vectors.db` (vector index), `mnemo-curator/issues.db` (curator findings). Durable jobs and the vector index are separate files by default; `VECTOR_DB_PATH=""` remains a supported explicit opt-in for sharing one file.
+6. All SQLite connections — jobs, vector index, and `mnemo-curator`'s issue tracker — open in WAL mode (`PRAGMA journal_mode=WAL`).
+7. Application code never reads `MNEMO_HOME` — it is deployment configuration. Bare-metal runs use the applications' relative defaults (`./data/<component>/<function>.db`) resolved against the working directory, so running a process with `$MNEMO_HOME` as its working directory lands state in the right place; the explicit `*_DB_PATH` variables override as before.
 
 ---
 
@@ -114,17 +114,22 @@ Failing loudly when `MNEMO_HOME` is unset is deliberate: the previous `./data` d
 
 Dropping `MNEMO_DATA_DIR` removes a second knob that overlapped the first — it was Compose-only interpolation dressed up as application configuration, and the removed packaged deployment already demonstrated how that ambiguity produces misplaced data.
 
-The renames make the naming self-consistent at the cheapest possible moment: inside a migration that ADR-015 already obliges existing deployments to perform.
+The renames make the naming self-consistent at the cheapest possible moment: inside a migration existing deployments are already obliged to perform.
+
+The storage decisions carried forward from ADR-015 stand for their original reasons. Bind mounts over anonymous named volumes answer the backup and restore gap directly — named volumes are invisible from the host under Docker Desktop, and there was no documented recovery story. Component-named subdirectories give operators a single location to know about and back up without recoupling the failure-domain separation the container decomposition establishes; each service still only ever sees its own subtree. Separating durable jobs from the vector index matters because their risk profiles differ: a job's in-flight working artefacts are reproducible by resubmitting the work, while losing the vector index means re-spending real embedding-provider budget to rebuild it, and the lock contention between job churn and embedding writes is real. Neither store is disposable in the backup sense: `state.db` also holds the audit record of every mutating API operation and adversarial review, which cannot be rebuilt from anything. WAL mode is the standard answer to concurrent SQLite access and costs nothing to enable across all three stores.
 
 ---
 
 ## Enforcement
 
 - Compose files must reference instance state exclusively through `${MNEMO_HOME:?…}` with a helpful error message; no compose path may default to a checkout-relative data or config location
-- New persistent state goes under `$MNEMO_HOME/data/<component>/` with a function-derived filename matching its configuration variable
+- New persistent state goes under `$MNEMO_HOME/data/<component>/` with a function-derived filename matching its configuration variable, and must never be shared with another deployable's subdirectory
+- New SQLite connections must enable WAL mode on open, consistent with `mnemo_core/jobs.py`, `mnemo_core/vector/sqlite_vec.py`, and `mnemo_curator/issue_trackers.py`
+- Non-root `MNEMO_UID`/`MNEMO_GID` deployments must pre-create and `chown` each component's data subdirectory before first run — documented in `docs/deployment/docker-compose.md`
+- Backups must use the documented WAL-safe procedure (SQLite online backup or a coordinated filesystem snapshot) in `docs/configuration.md`, never a plain file copy of a live database, and every restore must pass `PRAGMA integrity_check` before the service is brought back up
 - Application code must not read `MNEMO_HOME`; applications receive explicit paths (containers) or use relative defaults (bare-metal)
 - Documentation and quick starts must express locations in terms of `$MNEMO_HOME`, never a literal per-OS path, beyond stating the two conventional values
-- Any proposal to reintroduce checkout-resident state or a parallel data-location variable should reference and supersede this ADR
+- Any proposal to reintroduce checkout-resident state, a parallel data-location variable, anonymous named volumes, or shared storage between `mnemo-core` and `mnemo-curator` must supersede this ADR
 
 ---
 
@@ -135,10 +140,15 @@ Positive:
 - One directory to back up, move, or inspect per installation, on either OS
 - Misconfiguration fails with an instructive error instead of scattering state
 - Database names state their function and match the variables that configure them
+- `mnemo-core`'s job churn and embedding writes do not contend for the same file lock by default; a deployment that opts into `VECTOR_DB_PATH=""` gives that up knowingly
+- WAL mode improves concurrent read/write behaviour across all three SQLite-backed stores
+- Per-component failure-domain separation is preserved, not reopened
 
 Negative / trade-offs:
 - One-time setup per machine (`mkdir`, `cp`, one `export` in the shell profile) replaces zero-setup auto-discovery
-- Existing deployments must move `.env` and `data/` into an instance directory and rename three database files — folded into the ADR-015 migration documentation
+- Existing deployments must move `.env` and `data/` into an instance directory and rename three database files
+- Bind mounts require the host directory to exist with correct ownership before first run under non-root UID/GID
+- No automated backup mechanism is shipped; the manual WAL-safe procedure is documented and restore verification required, but scheduling it is left to the operator
 - Plain `docker compose config` (and CI invocations of it) must provide `MNEMO_HOME`
 
 ---
@@ -146,7 +156,7 @@ Negative / trade-offs:
 ## Related
 
 - [ADR-012: Container-level decomposition of Mnemosyne](012-container-decomposition.md) — the per-component isolation the instance directory preserves
-- [ADR-015: Persistence layout](015-persistence-layout.md) — amended by this ADR: per-component directories, separate files, and WAL mode stand; the storage location (`./data` default, `MNEMO_DATA_DIR`) and file names are replaced
+- [ADR-015: Persistence layout](015-persistence-layout.md) — superseded by this ADR, which carries forward its bind mounts, per-component directories, file separation, and WAL mode, and replaces its storage location (`./data` default, `MNEMO_DATA_DIR`) and file names
 
 ---
 

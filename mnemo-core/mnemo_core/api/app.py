@@ -35,7 +35,7 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
     )
     setup_logging(app.state.settings.log_level)
 
-    # ADR-018: fetch the KB's template set (and with it the sub-label
+    # ADR-022: fetch the KB's template set (and with it the sub-label
     # taxonomy) once at startup. A fetch failure raises and stops the
     # service — fail-stop by design, supervised by the restart policy.
     app.state.template_set = get_template_set()

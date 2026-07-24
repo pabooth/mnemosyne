@@ -10,7 +10,7 @@ class DuplicateChecker:
 
     Never blocks ingestion — matches are attached to the ProcessedDocument
     for a human reviewer to weigh in the PR, consistent with the project's
-    human-review governance (ADR-005/ADR-011). Chunks the candidate the
+    human-review governance (ADR-005/ADR-021). Chunks the candidate the
     same way the indexer chunks published content (chunk_markdown over the
     built markdown) so both sides of the comparison are the same
     granularity.

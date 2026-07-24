@@ -11,20 +11,23 @@ material with the Diataxis framework, improves structure and metadata, and
 opens a pull request for review.
 
 All paths that publish content must create a branch and pull request. Review
-follows the tiered model in ADR-011: Tier 1 content may be approved and merged
-without human sign-off only when both cross-family adversarial reviewers agree
-to accept; disagreement or reviewer unavailability requires human review.
-Tier 2 governance and constitutional content always requires human approval.
+follows the tiered model in ADR-021: the author's case is challenged by a
+cross-family critic, the author rebuts the critic's blocking concerns, and a
+third-family judge disposes of each concern. Tier 1 content may be approved and
+merged without human sign-off only on a derived `accept`; a rejected or
+escalated outcome, and any stage whose artefact is missing, invalid, or
+unavailable, requires human review. Tier 2 governance and constitutional
+content always requires human approval.
 
 Diataxis document type and review tier are separate axes:
 
 - Diataxis controls document shape: tutorial, how-to, reference, explanation.
 - Review tier controls review depth and risk handling. A document's tier is
-  declared by its template's `tier` frontmatter (ADR-019), never judged by
+  declared by its template's `tier` frontmatter (ADR-022), never judged by
   the LLM; anything without a declaration fails closed to Tier 2.
 
 The sub-label taxonomy and document templates are knowledge-base content,
-not code (ADR-018): they live in the KB repo's `templates/` directory and
+not code (ADR-022): they live in the KB repo's `templates/` directory and
 are fetched once at startup. Never reintroduce templates or sub-label
 lists into `mnemo-core` source.
 
@@ -38,11 +41,11 @@ Key ADRs:
 
 - ADR-005: superseded initial human-review governance model.
 - ADR-006 and ADR-008: MCP is an intake interface only.
-- ADR-011: authoritative tiered adversarial-review and approval model.
-- ADR-012: deployment boundaries and service ownership.
+- ADR-021: authoritative tiered adversarial-review and approval model.
+- ADR-023: deployment boundaries and service ownership.
 - ADR-013: API contract-first design and URI-path versioning.
 - ADR-017: instance directory — deployment state under `MNEMO_HOME`.
-- ADR-018: KB-owned templates define the sub-label taxonomy.
+- ADR-022: KB-owned templates define the taxonomy and declare review tiers.
 
 ## Current architecture
 

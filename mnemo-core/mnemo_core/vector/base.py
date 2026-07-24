@@ -7,7 +7,7 @@ from typing import Any
 class VectorRecord:
     """A single embedded chunk to be stored in the index.
 
-    ``content_hash`` is what the reconciliation pass (ADR-012) diffs against
+    ``content_hash`` is what the reconciliation pass (ADR-023) diffs against
     the repo to find what's missing or stale, independent of the ``id``
     naming scheme any particular caller chooses.
     """

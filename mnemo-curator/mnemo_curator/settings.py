@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     curator_default_owner: str = "unset"
     curator_issue_tracker: Literal["github", "jira", "sqlite"] = "github"
     curator_issue_labels: str = "mnemo-curator"
-    # Persistence layout (ADR-015/ADR-017): mnemo-curator stores its state
+    # Persistence layout (ADR-017): mnemo-curator stores its state
     # under its own subdirectory of the data directory. Docker deployments
     # override this with a container path on the bind-mounted /data;
     # bare-metal runs resolve it against the working directory,

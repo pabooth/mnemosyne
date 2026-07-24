@@ -62,7 +62,7 @@ class GitHubClient:
         return not root or path.startswith(f"{root}/")
 
     def _is_template(self, path: str) -> bool:
-        # templates/ holds document-type definitions, not content (ADR-018)
+        # templates/ holds document-type definitions, not content (ADR-022)
         root = self.settings.docs_root.strip("/")
         prefix = f"{root}/templates/" if root else "templates/"
         return path.startswith(prefix)

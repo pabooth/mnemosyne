@@ -1,6 +1,6 @@
 # ADR-018: Document templates live in the knowledge base and define the sub-label taxonomy
 
-> **Status:** `Proposed`
+> **Status:** `Superseded`
 > **Date:** 2026-07-13
 > **Review date:** 2027-07-13
 
@@ -12,13 +12,11 @@
 |---|---|
 | **ID** | ADR-018 |
 | **Title** | Document templates live in the knowledge base and define the sub-label taxonomy |
-| **Status** | Proposed |
+| **Status** | Superseded |
 | **Date** | 2026-07-13 |
 | **Review date** | 2027-07-13 |
 | **Supersedes** | — |
-| **Superseded by** | — |
-| **Amends** | — |
-| **Amended by** | — |
+| **Superseded by** | [ADR-022: KB-owned templates define the taxonomy and declare review tiers](022-kb-owned-templates-and-tiers.md) |
 
 ---
 
