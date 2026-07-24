@@ -90,7 +90,7 @@ async def test_classify_accepts_empty_sub_label():
 
 
 async def test_review_tier_comes_from_template_not_llm():
-    # ADR-019: the LLM claims tier-1, but "standard" is declared tier-2.
+    # ADR-022: the LLM claims tier-1, but "standard" is declared tier-2.
     llm = FakeLLM(
         llm_json_response(type="reference", sub_label="standard", review_tier="tier-1")
     )

@@ -10,7 +10,7 @@ class GitHubContentSource:
 
     Mirrors mnemo-curator's tree-walk (mnemo_curator/github.py) rather than
     importing it: mnemo-core and mnemo-curator are separate deployables
-    (ADR-012) with independent dependency trees, and the duplication is the
+    (ADR-023) with independent dependency trees, and the duplication is the
     accepted cost of that boundary (see ADR-013's precedent for versioned
     router packages).
     """
@@ -77,7 +77,7 @@ class GitHubContentSource:
         return not self._docs_root or path.startswith(f"{self._docs_root}/")
 
     def _is_template(self, path: str) -> bool:
-        # templates/ holds document-type definitions, not content (ADR-018)
+        # templates/ holds document-type definitions, not content (ADR-022)
         prefix = f"{self._docs_root}/templates/" if self._docs_root else "templates/"
         return path.startswith(prefix)
 

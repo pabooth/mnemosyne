@@ -149,7 +149,7 @@ Negative / trade-offs:
 
 ## Related
 
-- [ADR-011: Tiered Review Governance](011-tiered-review-governance.md)
+- [ADR-011: Tiered review model for KB contributions](011-tiered-review-model.md)
 - [ADR-012: Container Decomposition](012-container-decomposition.md)
 
 ---

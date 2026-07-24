@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added
+
+- Author rebuttal round (ADR-021): when the critic raises blocking concerns the
+  main model answers them by index with a `dispute` or `no-contest` stance
+  before the judge adjudicates. The round is skipped when there is nothing to
+  answer, and a required rebuttal that fails or is invalid escalates.
+
+- Every artefact passed to a reviewing model is fenced with a per-call random
+  nonce, so submitted content cannot present itself as another party's
+  contribution.
+
+### Changed
+
+- The judge contract is bounded (ADR-021): it returns one disposition —
+  `upheld`, `dismissed`, or `unresolved` — for every critic blocking concern and
+  has no verdict field and no free-text concern list. The verdict is derived in
+  code (any upheld rejects, any unresolved escalates, otherwise accept), so
+  results recorded under ADR-020 are not comparable; results now carry a
+  `protocol_version`.
+
+- Critic blocking and non-blocking concerns are bounded to ten each so that
+  every concern can be answered and disposed of by position.
+
+- Each review stage is bounded by `REQUEST_TIMEOUT_SECONDS` and retried once on
+  unparseable output, and the PR comment records the rebuttal, the per-concern
+  dispositions, and each participant's provider family and model. Read-path
+  duplicate candidates now reach the critic as leads.
+
 ## [2.2.0] - 2026-07-19
 
 

@@ -65,6 +65,13 @@ def build_runner(
 def build_adversarial_reviewer(cfg: Settings | None = None) -> AdversarialReviewer:
     cfg = get_settings() if cfg is None else cfg
     return AdversarialReviewer(
+        # The main LLM authors the case and, when the critic raises blocking
+        # concerns, the rebuttal; it introduces no fourth family (ADR-021).
+        _DeferredProvider(
+            cfg.main_llm_provider,
+            cfg.main_llm_model,
+            cfg,
+        ),
         _DeferredProvider(
             cfg.reviewer_critic_provider,
             cfg.reviewer_critic_model,
@@ -75,9 +82,14 @@ def build_adversarial_reviewer(cfg: Settings | None = None) -> AdversarialReview
             cfg.reviewer_judge_model,
             cfg,
         ),
+        author_family=cfg.main_llm_provider,
+        author_model=cfg.main_llm_model,
         critic_family=cfg.reviewer_critic_provider,
+        critic_model=cfg.reviewer_critic_model,
         judge_family=cfg.reviewer_judge_provider,
+        judge_model=cfg.reviewer_judge_model,
         audit_sink=GitHubReviewAuditSink(cfg.github_token, cfg.github_repo),
+        timeout_seconds=cfg.request_timeout_seconds,
     )
 
 

@@ -1,6 +1,6 @@
 # ADR-019: Templates declare the review tier of their document type
 
-> **Status:** `Proposed`
+> **Status:** `Superseded`
 > **Date:** 2026-07-14
 > **Review date:** 2027-07-14
 
@@ -12,13 +12,11 @@
 |---|---|
 | **ID** | ADR-019 |
 | **Title** | Templates declare the review tier of their document type |
-| **Status** | Proposed |
+| **Status** | Superseded |
 | **Date** | 2026-07-14 |
 | **Review date** | 2027-07-14 |
 | **Supersedes** | — |
-| **Superseded by** | — |
-| **Amends** | [ADR-011: Tiered review model](011-tiered-review-model.md), [ADR-018: KB-owned templates](018-kb-owned-templates.md) *(on acceptance)* |
-| **Amended by** | — |
+| **Superseded by** | [ADR-022: KB-owned templates define the taxonomy and declare review tiers](022-kb-owned-templates-and-tiers.md) |
 
 ---
 

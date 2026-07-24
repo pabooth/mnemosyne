@@ -1,6 +1,6 @@
 # ADR-012: Container-level decomposition of Mnemosyne
 
-> **Status:** `Accepted`
+> **Status:** `Superseded`
 > **Date:** 2026-07-06
 > **Review date:** 2027-07-06
 
@@ -12,13 +12,11 @@
 |---|---|
 | **ID** | ADR-012 |
 | **Title** | Container-level decomposition of Mnemosyne |
-| **Status** | Accepted |
+| **Status** | Superseded |
 | **Date** | 2026-07-06 |
 | **Review date** | 2027-07-06 |
 | **Supersedes** | — |
-| **Superseded by** | — |
-| **Amends** | — |
-| **Amended by** | ADR-016 (proxy ownership only) |
+| **Superseded by** | [ADR-023: Decompose Mnemosyne into deployed services, clients, and external systems](023-container-decomposition.md) |
 
 ---
 

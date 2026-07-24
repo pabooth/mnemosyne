@@ -1,6 +1,6 @@
 # ADR-015: Persistence layout — bind-mounted, component-named data directories with WAL-mode SQLite
 
-> **Status:** `Accepted`
+> **Status:** `Superseded`
 > **Date:** 2026-07-11
 > **Review date:** 2027-07-11
 
@@ -12,12 +12,11 @@
 |---|---|
 | **ID** | ADR-015 |
 | **Title** | Persistence layout — bind-mounted, component-named data directories with WAL-mode SQLite |
-| **Status** | Accepted |
+| **Status** | Superseded |
 | **Date** | 2026-07-11 |
 | **Review date** | 2027-07-11 |
 | **Supersedes** | — |
-| **Superseded by** | — |
-| **Amended by** | [ADR-017](017-instance-directory.md) — storage location and database file names; per-component directories, file separation, and WAL mode stand |
+| **Superseded by** | [ADR-017: Instance directory](017-instance-directory.md) |
 
 ---
 

@@ -1,6 +1,6 @@
 # ADR-020: Adjudicate an authored case against an adversarial challenge
 
-> **Status:** `Accepted`
+> **Status:** `Superseded`
 > **Date:** 2026-07-18
 > **Review date:** 2027-07-18
 
@@ -12,13 +12,11 @@
 |---|---|
 | **ID** | ADR-020 |
 | **Title** | Adjudicate an authored case against an adversarial challenge |
-| **Status** | Accepted |
+| **Status** | Superseded |
 | **Date** | 2026-07-18 |
 | **Review date** | 2027-07-18 |
 | **Supersedes** | — |
-| **Superseded by** | — |
-| **Amends** | [ADR-011: Tiered review model](011-tiered-review-model.md) |
-| **Amended by** | — |
+| **Superseded by** | [ADR-021: Tiered review with adversarial adjudication and author rebuttal](021-tiered-adversarial-review.md) |
 
 ---
 

@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     # Ollama (no API key — served via OpenAI-compat endpoint)
     ollama_base_url: str = "http://localhost:11434"
 
-    # ADR-020 adversarial adjudication. The main LLM is the author-advocate;
+    # ADR-021 adversarial adjudication. The main LLM is the author-advocate;
     # critic and judge must complete a three-family pairing with it.
     adversarial_review_enabled: bool = False
     reviewer_critic_provider: str = "openai"
@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     request_rate_limit_per_minute: int = 30
     request_max_concurrency: int = 4
     request_max_body_bytes: int = 2_000_000
-    # Persistence layout (ADR-015/ADR-017): every component stores its
+    # Persistence layout (ADR-017): every component stores its
     # state under its own subdirectory of the data directory. Docker
     # deployments override these with container paths on the bind-mounted
     # /data; bare-metal runs resolve them against the working directory,
@@ -78,7 +78,7 @@ class Settings(BaseSettings):
     otel_service_name: str = "mnemo-core"
     log_level: str = "INFO"
 
-    # Vector index (ADR-014/ADR-015) — embedded sqlite-vec by default, in
+    # Vector index (ADR-014/ADR-017) — embedded sqlite-vec by default, in
     # its own file so embedding writes don't lock-contend with job status
     # writes to state_db_path. Set to "" to explicitly share state_db_path
     # instead.
@@ -92,7 +92,7 @@ class Settings(BaseSettings):
     embedding_openai_model: str = "text-embedding-3-small"
     embedding_ollama_model: str = "nomic-embed-text"
 
-    # Indexer (ADR-012/ADR-014)
+    # Indexer (ADR-023/ADR-014)
     index_max_files: int = 2000
 
     # Read-path dedup check ("Dependency & Deduplication"). Off by default:

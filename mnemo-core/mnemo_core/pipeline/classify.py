@@ -29,7 +29,7 @@ async def classify_augment_format(
         result = _validate_taxonomy(parse_processed_document(raw), templates)
         template = templates.get(result.type, result.sub_label) if result.sub_label else None
 
-    # ADR-019: the template declaration is the canonical review tier; the
+    # ADR-022: the template declaration is the canonical review tier; the
     # model has no say. Documents with no matching template fail closed.
     return result.model_copy(
         update={"review_tier": template.tier if template is not None else "tier-2"}
@@ -41,7 +41,7 @@ def _validate_taxonomy(
 ) -> ProcessedDocument:
 
     # LLM output is untrusted: a sub-label is only valid for the type it is
-    # defined under in the KB's template set (ADR-018). Failing here lets the
+    # defined under in the KB's template set (ADR-022). Failing here lets the
     # durable-job retry give the model a second attempt.
     if result.sub_label and templates.get(result.type, result.sub_label) is None:
         valid = [t.sub_label for t in templates.for_type(result.type)]
