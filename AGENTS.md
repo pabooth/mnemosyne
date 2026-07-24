@@ -14,8 +14,9 @@ All paths that publish content must create a branch and pull request. Review
 follows the tiered model in ADR-021: the author's case is challenged by a
 cross-family critic, the author rebuts the critic's blocking concerns, and a
 third-family judge disposes of each concern. Tier 1 content may be approved and
-merged without human sign-off only on a derived `accept`; a rejected, escalated,
-or unavailable stage requires human review. Tier 2 governance and constitutional
+merged without human sign-off only on a derived `accept`; a rejected or
+escalated outcome, and any stage whose artefact is missing, invalid, or
+unavailable, requires human review. Tier 2 governance and constitutional
 content always requires human approval.
 
 Diataxis document type and review tier are separate axes:

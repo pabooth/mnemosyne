@@ -25,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   has no verdict field and no free-text concern list. The verdict is derived in
   code (any upheld rejects, any unresolved escalates, otherwise accept), so
   results recorded under ADR-020 are not comparable; results now carry a
-  `protocol_version`.
+  `protocol_version`. A stored result written before the field existed reads
+  back as `adr-020` rather than being relabelled as the current protocol.
 
 - Critic blocking and non-blocking concerns are bounded to ten each so that
   every concern can be answered and disposed of by position.

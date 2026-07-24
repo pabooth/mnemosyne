@@ -5,6 +5,9 @@ import httpx
 import pytest
 
 from mnemo_core.models import (
+    LEGACY_REVIEW_PROTOCOL_VERSION,
+    MAX_REVIEW_CONCERNS,
+    REVIEW_PROTOCOL_VERSION,
     AcceptanceCase,
     AdversarialReviewResult,
     ConcernDisposition,
@@ -434,9 +437,12 @@ async def test_tier_2_never_auto_merges_whatever_the_outcome(disposition, outcom
     assert reason in result.reason
 
 
-async def test_either_review_stage_can_upgrade_tier_1_to_tier_2():
+@pytest.mark.parametrize(
+    ("critic_tier", "judge_tier"), [("tier-1", "tier-2"), ("tier-2", "tier-1")]
+)
+async def test_either_review_stage_can_upgrade_tier_1_to_tier_2(critic_tier, judge_tier):
     result = await reviewer(
-        critic_report(), judge_report(tier="tier-2")
+        critic_report(tier=critic_tier), judge_report(tier=judge_tier)
     ).review(processed_doc(review_tier="tier-1"), published())
     assert result.tier == "tier-2"
     assert result.requires_human_review is True
@@ -503,6 +509,7 @@ async def test_audit_failure_does_not_turn_adjudication_into_error():
 
 def accepted_result(*, tier="tier-1", human=False) -> AdversarialReviewResult:
     return AdversarialReviewResult(
+        protocol_version=REVIEW_PROTOCOL_VERSION,
         tier=tier,
         acceptance_case=ACCEPTANCE_CASE,
         critic=CriticReport(
@@ -525,6 +532,7 @@ def accepted_result(*, tier="tier-1", human=False) -> AdversarialReviewResult:
 
 def contested_result() -> AdversarialReviewResult:
     return AdversarialReviewResult(
+        protocol_version=REVIEW_PROTOCOL_VERSION,
         tier="tier-1",
         acceptance_case=ACCEPTANCE_CASE,
         critic=CriticReport(
@@ -589,6 +597,37 @@ def test_audit_comment_records_the_rebuttal_and_dispositions():
     assert "| Concern | Disposition | Reason |" in comment
     assert "| [0] The command is unsafe. | dismissed | The rebuttal is borne out. |" in comment
     assert "| [1] The provenance is thin. | upheld | No source is given. |" in comment
+
+
+def test_audit_comment_keeps_multi_line_dispositions_inside_their_table_row():
+    result = contested_result()
+    result.critic.blocking_concerns[0] = "The command is unsafe.\n\nIt deletes the tree."
+    result.judge.dispositions[0].reason = "The rebuttal\nis borne out."
+
+    comment = _audit_comment(result)
+
+    assert (
+        "| [0] The command is unsafe. It deletes the tree. | dismissed "
+        "| The rebuttal is borne out. |"
+    ) in comment
+    # Both later rows must still be rows, not prose after a broken table.
+    assert comment.count("\n| [") == 2
+
+
+def test_a_stored_review_result_without_a_protocol_version_reads_as_adr_020():
+    """A record written before the field existed followed the ADR-020 contract:
+    re-reading it as adr-021 would claim a derived verdict it never had."""
+    legacy = AdversarialReviewResult.model_validate_json(
+        contested_result().model_dump_json(exclude={"protocol_version"})
+    )
+
+    assert legacy.protocol_version == LEGACY_REVIEW_PROTOCOL_VERSION
+    assert "**Protocol:** adr-020" in _audit_comment(legacy)
+
+
+def test_the_critic_prompt_states_the_enforced_concern_bound():
+    assert f"at most {MAX_REVIEW_CONCERNS} concise, substantiated" in _critic_prompt("abc123")
+    assert f"at most {MAX_REVIEW_CONCERNS} concise improvements" in _critic_prompt("abc123")
 
 
 def test_audit_comment_distinguishes_a_skipped_rebuttal_from_a_missing_one():

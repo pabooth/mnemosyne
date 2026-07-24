@@ -116,7 +116,7 @@ Dropping `MNEMO_DATA_DIR` removes a second knob that overlapped the first — it
 
 The renames make the naming self-consistent at the cheapest possible moment: inside a migration existing deployments are already obliged to perform.
 
-The storage decisions carried forward from ADR-015 stand for their original reasons. Bind mounts over anonymous named volumes answer the backup and restore gap directly — named volumes are invisible from the host under Docker Desktop, and there was no documented recovery story. Component-named subdirectories give operators a single location to know about and back up without recoupling the failure-domain separation the container decomposition establishes; each service still only ever sees its own subtree. Separating durable jobs from the vector index matters because their risk profiles differ: job records were always disposable, while losing the vector index means re-spending real embedding-provider budget to rebuild it, and the lock contention between job churn and embedding writes is real. WAL mode is the standard answer to concurrent SQLite access and costs nothing to enable across all three stores.
+The storage decisions carried forward from ADR-015 stand for their original reasons. Bind mounts over anonymous named volumes answer the backup and restore gap directly — named volumes are invisible from the host under Docker Desktop, and there was no documented recovery story. Component-named subdirectories give operators a single location to know about and back up without recoupling the failure-domain separation the container decomposition establishes; each service still only ever sees its own subtree. Separating durable jobs from the vector index matters because their risk profiles differ: a job's in-flight working artefacts are reproducible by resubmitting the work, while losing the vector index means re-spending real embedding-provider budget to rebuild it, and the lock contention between job churn and embedding writes is real. Neither store is disposable in the backup sense: `state.db` also holds the audit record of every mutating API operation and adversarial review, which cannot be rebuilt from anything. WAL mode is the standard answer to concurrent SQLite access and costs nothing to enable across all three stores.
 
 ---
 
@@ -140,7 +140,7 @@ Positive:
 - One directory to back up, move, or inspect per installation, on either OS
 - Misconfiguration fails with an instructive error instead of scattering state
 - Database names state their function and match the variables that configure them
-- `mnemo-core`'s job churn and embedding writes do not contend for the same file lock
+- `mnemo-core`'s job churn and embedding writes do not contend for the same file lock by default; a deployment that opts into `VECTOR_DB_PATH=""` gives that up knowingly
 - WAL mode improves concurrent read/write behaviour across all three SQLite-backed stores
 - Per-component failure-domain separation is preserved, not reopened
 

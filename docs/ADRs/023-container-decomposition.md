@@ -211,7 +211,7 @@ deployments, and keeps `mnemo-core` owning only API, MCP, pipeline, job, and pub
   Compose model
 - Releases publish a versioned image and standalone archive per deployed service
 - Application, authentication, or governance logic must not be added to `mnemo-proxy`
-- The `Self-Audit` label is retired everywhere it appears in favour of `mnemo-curator`
+- The `Self-Audit` label is retired from operational guidance, diagrams, docs, and task trackers in favour of `mnemo-curator`; occurrences in this and earlier ADRs stand as historical record of the rename
 - Proposals for new deployables, for splitting `mnemo-curator`, for extracting indexing, or for
   moving edge routing into another component must supersede this ADR
 

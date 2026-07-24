@@ -14,8 +14,12 @@ MAX_REVIEW_CONCERN_CHARS = 500
 # ADR-021 bounds the critic's blocking concerns to a small list so that the
 # author can answer each one and the judge can dispose of each one by position.
 MAX_REVIEW_CONCERNS = 10
+MAX_REBUTTAL_ARGUMENT_CHARS = 1_000
 # Stamped on every review result: the ADR-020 record shape is not comparable.
 REVIEW_PROTOCOL_VERSION = "adr-021"
+# Records written before the protocol was stamped are ADR-020 by definition;
+# a stored result must never be re-read as if it followed the current contract.
+LEGACY_REVIEW_PROTOCOL_VERSION = "adr-020"
 
 
 def _validate_bounded_strings(
@@ -132,7 +136,7 @@ class RebuttalEntry(BaseModel):
 
     concern_index: int
     stance: Literal["dispute", "no-contest"]
-    argument: str = Field(default="", max_length=1_000)
+    argument: str = Field(default="", max_length=MAX_REBUTTAL_ARGUMENT_CHARS)
 
 
 class RebuttalReport(BaseModel):
@@ -164,7 +168,11 @@ class JudgeReport(BaseModel):
 
 
 class AdversarialReviewResult(BaseModel):
-    protocol_version: str = REVIEW_PROTOCOL_VERSION
+    # The reviewer stamps REVIEW_PROTOCOL_VERSION explicitly. The default is
+    # only reached when a stored result predates the field, and those records
+    # are ADR-020 — defaulting them to the current protocol would claim a
+    # derived-verdict guarantee the record never had.
+    protocol_version: str = LEGACY_REVIEW_PROTOCOL_VERSION
     tier: ReviewTier
     acceptance_case: AcceptanceCase | None = None
     critic: CriticReport | None = None

@@ -18,7 +18,8 @@ carries two fields:
   when a document counts as this type, so write it as carefully as the
   template body.
 - `tier` — the ADR-021 review tier for documents of this type: `tier-1`
-  (may auto-merge when both adversarial reviewers accept) or `tier-2`
+  (may auto-merge only on a derived `accept` — no blocking concern upheld
+  and none left unresolved) or `tier-2`
   (human approval always required). A missing `tier` fails closed to
   `tier-2`. Declaring `tier-1` is a positive editorial decision to open
   the auto-merge path for that document type — the example set marks
